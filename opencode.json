@@ -5,25 +5,39 @@
       "models": {
         "moonshotai/kimi-k2": {
           "options": {
-            "order": ["baseten"],
-            "allow_fallbacks": false
-          }
+            "provider": {
+              "order": ["baseten"],
+              "allow_fallbacks": false
+           }
+         }
         },
         "qwen/qwen3-coder": {
           "options": {
-            "order": ["chutes"],
-            "allow_fallbacks": false
+            "provider": {
+              "order": ["chutes/fp8"],
+              "allow_fallbacks": false
           }
         }
       }
+     }
     },
     "huggingface": {
-      "models": {
-        "Qwen/Qwen3-235B-A22B-Instruct-2507:fireworks-ai": {}
-      }
-    }
-  },
-  "mcp": {
+     "models": {
+       "Qwen/Qwen3-235B-A22B-Instruct-2507:fireworks-ai": {}
+     }
+   },
+   "chutes": {
+     "name": "Chutes",
+     "npm": "@ai-sdk/openai-compatible",
+     "models": {
+       "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8": {}
+     },
+     "options": {
+       "baseURL": "https://llm.chutes.ai/v1"
+     }
+   }
+ },
+ "mcp": {
     "context7": {
       "type": "remote",
       "url": "https://mcp.context7.com/sse"
