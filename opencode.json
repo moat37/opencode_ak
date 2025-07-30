@@ -5,10 +5,14 @@
       "models": {
         "moonshotai/kimi-k2": {
           "options": {
-            "provider": {
-              "order": ["baseten"],
-              "allow_fallbacks": false
-            }
+            "order": ["baseten"],
+            "allow_fallbacks": false
+          }
+        },
+        "qwen/qwen3-coder": {
+          "options": {
+            "order": ["chutes"],
+            "allow_fallbacks": false
           }
         }
       }

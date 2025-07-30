@@ -594,7 +594,7 @@ export namespace Session {
     if (previous && previous.tokens) {
       const tokens =
         previous.tokens.input + previous.tokens.cache.read + previous.tokens.cache.write + previous.tokens.output
-      if (model.info.limit.context && tokens > Math.max((model.info.limit.context - outputLimit) * 0.9, 0)) {
+      if (model.info.limit.context && tokens > Math.max((model.info.limit.context - outputLimit) * 0.3, 0)) {
         await summarize({
           sessionID: input.sessionID,
           providerID: input.providerID,
