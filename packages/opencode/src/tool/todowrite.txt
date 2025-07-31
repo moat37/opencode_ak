@@ -28,11 +28,11 @@ NOTE that you should not use this tool if there is only one trivial task to do. 
 User: I want to add a dark mode toggle to the application settings. Make sure you run the tests and build when you're done!
 Assistant: I'll help add a dark mode toggle to your application settings. Let me create a todo list to track this implementation.
 *Creates todo list with the following items:*
-1. Create dark mode toggle component in Settings page
-2. Add dark mode state management (context/store)
-3. Implement CSS-in-JS styles for dark theme
-4. Update existing components to support theme switching
-5. Run tests and build process, addressing any failures or errors that occur
+[ ] 1. Create dark mode toggle component in Settings page
+[ ] 2. Add dark mode state management (context/store)
+[ ] 3. Implement CSS-in-JS styles for dark theme
+[ ] 4. Update existing components to support theme switching
+[ ] 5. Run tests and build process, addressing any failures or errors that occur
 *Begins working on the first task*
 
 <reasoning>
