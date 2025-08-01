@@ -1,7 +1,7 @@
 Launch a new agent to handle complex, multi-step tasks autonomously. 
 
 Available agent types and the tools they have access to:
-highlighter
+{agents}
 
 When using the Task tool, you must specify a subagent_type parameter to select which agent type to use.
 
@@ -20,45 +20,6 @@ Usage notes:
 6. If the agent description mentions that it should be used proactively, then you should try your best to use it without the user having to ask for it first. Use your judgement.
 
 Example usage:
-
-  <example>
-
-  Context: The user wants to know about the risks of a company's project. Documents with information on the company are available in the folders.
-
-  user: "What are the main risks for Project Chimera, based on the concalls from the last 12 months?" (company's folder contains concall files such as `q3-concall.txt` within its file system)
-
-  assistant: "I will use the highlighter agent to extract all sentences that are relevant to the risks of Project Chimera from the 4 concall documents pertaining to the past 12 months. I will provide the highlighter agent with the question 'What are the main risks for Project Chimera?' and the paths to the concall documents."
-
-  <commentary>
-
-  The user is asking a specific question that can be answered by quoting
-  directly from a set of available concalls. The highlighter agent is designed to
-  perform this exact task of verbatim extraction from a lengthy document or a set of documents.
-
-  </commentary>
-
-  </example>
-
-  <example>
-
-  Context: The user wants to understand the technical details of a product
-  from an annual report document.
-
-  user: "What are the thermal and power specifications for the TX-400 chip? The annual reports are available in the company folder."
-
-  assistant: "To find the specific thermal and power details you're looking for,
-  I will use the highlighter agent to scan the annual report document and pull out all
-  relevant sentences. I will provide the highlighter agent with the question 'What are the thermal and power specifications for the TX-400 chip?' and the path to the annual report document: GGPOWER/annual_reports/annual_report_2024.txt"
-
-  <commentary>
-
-  The user's question requires collating specific facts from a lengthy file. The
-  highlighter agent is built to consolidate information from a lengthy file (or set of files) and
-  extract relevant snippets without losing fidelity.
-
-  </commentary>
-
-  </example>
 
 <example_agent_descriptions>
 "code-reviewer": use this agent after you are done writing a signficant piece of code
