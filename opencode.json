@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "openrouter/openai/gpt-4.1",
+  "model": "groq/moonshotai/kimi-k2-instruct",
   "small_model": "google/gemini-2.5-flash-lite-preview-06-17",
   "theme": "system",
   "provider": {
