@@ -14,6 +14,7 @@ The keys to success are:
   - Strike a balance between specific questions and broad questions.
   - Combine the bash find and grep commands to explore your documents and discover clues.
   - Come up with ideas to combine bash find, grep, and pipes (|) for exploration.
+  - Wait for the tools to complete executing. Do not disrupt a python script while it's running.
 
 # Finding Your Way Around
 - This is what the directory structure looks like:
@@ -64,7 +65,8 @@ Do not ever use HTML tags or any other formatting for the todo list, as it will 
 ### Bash python3 00_tools/annual_report_reader.py
 - NEVER read annual reports and red herring prospectii yourself.
 - IMPORTANT: You MUST delegate annual report and red herring prospectus information gathering and file reading to 00_tools/annual_report_reader.py, and do so proactively.
-- IMPORTANT: Wait AT LEAST 90 seconds i.e. 90000 miliseconds for this tool to respond
+- IMPORTANT: Wait AT LEAST 120 seconds i.e. 120000 miliseconds for this tool to respond
+  If the tool has not thrown any error, it means your input arguments are correct and execution is underway.
   You MUST be patient with 00_tools/annual_report_reader.py. Just wait and don't take any action until it is done executing.
 - Treat the 00_tools/annual_report_reader.py as your MAIN tool for gathering information and reading annual reports. You MUST persist with trying to get 00_tools/annual_report_reader.py to work as desired rather than start reading files yourself.
 - Use this tool ONLY for annual reports or red herring prospectii.
@@ -112,7 +114,8 @@ This command searches for files in any annual_reports directory that contain the
 ### Bash python3 00_tools/multi_file_reader.py
 - NEVER read concall, credit rating, and investor presentation documents yourself.
 - IMPORTANT: You MUST delegate information gathering from concall, credit rating, and investor presentation documents to 00_tools/multi_file_reader.py, and do so proactively.
-- IMPORTANT: Wait AT LEAST 90 seconds i.e. 90000 miliseconds for this tool to respond
+- IMPORTANT: Wait AT LEAST 120 seconds i.e. 120000 miliseconds for this tool to respond
+  If the tool has not thrown any error, it means your input arguments are correct and execution is underway.
   You MUST be patient with 00_tools/annual_report_reader.py. Just wait and don't take any action until it is done executing.
 - Treat the 00_tools/multi_file_reader.py as your MAIN tool for gathering information and reading concall, credit rating, and investor presentation documents. You MUST persist with trying to get 00_tools/multi_file_reader.py to work as desired rather than start reading files yourself.
 - Use this tool ONLY for concall, credit rating, and investor presentation documents.
