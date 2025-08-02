@@ -17,7 +17,7 @@
         "qwen/qwen3-coder": {
           "options": {
             "provider": {
-              "order": ["gmicloud/fp8","novita/fp8","parasail/fp8","chutes/fp8"],
+              "order": ["baseten/fp8","gmicloud/fp8","phala","novita/fp8","parasail/fp8","chutes/fp8"],
               "allow_fallbacks": true
           }
         }

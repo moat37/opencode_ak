@@ -4,8 +4,8 @@ import DESCRIPTION from "./bash.txt"
 import { App } from "../app/app"
 
 const MAX_OUTPUT_LENGTH = 100000
-const DEFAULT_TIMEOUT = 1 * 60 * 1000
-const MAX_TIMEOUT = 10 * 60 * 1000
+const DEFAULT_TIMEOUT = 1 * 90 * 1000
+const MAX_TIMEOUT = 10 * 90 * 1000
 
 export const BashTool = Tool.define("bash", {
   description: DESCRIPTION,

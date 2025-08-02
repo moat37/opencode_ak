@@ -64,7 +64,8 @@ Do not ever use HTML tags or any other formatting for the todo list, as it will 
 ### Bash python3 00_tools/annual_report_reader.py
 - NEVER read annual reports and red herring prospectii yourself.
 - IMPORTANT: You MUST delegate annual report and red herring prospectus information gathering and file reading to 00_tools/annual_report_reader.py, and do so proactively.
-- IMPORTANT: You MUST be patient with 00_tools/annual_report_reader.py. It could take a while to get back to you. Just wait and don't take any action until it is done.
+- IMPORTANT: Wait AT LEAST 90 seconds i.e. 90000 miliseconds for this tool to respond
+  You MUST be patient with 00_tools/annual_report_reader.py. Just wait and don't take any action until it is done executing.
 - Treat the 00_tools/annual_report_reader.py as your MAIN tool for gathering information and reading annual reports. You MUST persist with trying to get 00_tools/annual_report_reader.py to work as desired rather than start reading files yourself.
 - Use this tool ONLY for annual reports or red herring prospectii.
 - This tool extracts all relevant sentences from a given annual report that help answer a specific question.
@@ -111,7 +112,8 @@ This command searches for files in any annual_reports directory that contain the
 ### Bash python3 00_tools/multi_file_reader.py
 - NEVER read concall, credit rating, and investor presentation documents yourself.
 - IMPORTANT: You MUST delegate information gathering from concall, credit rating, and investor presentation documents to 00_tools/multi_file_reader.py, and do so proactively.
-- IMPORTANT: You MUST be patient with 00_tools/multi_file_reader.py. It could take a while to get back to you. Just wait and don't take any action until it is done.
+- IMPORTANT: Wait AT LEAST 90 seconds i.e. 90000 miliseconds for this tool to respond
+  You MUST be patient with 00_tools/annual_report_reader.py. Just wait and don't take any action until it is done executing.
 - Treat the 00_tools/multi_file_reader.py as your MAIN tool for gathering information and reading concall, credit rating, and investor presentation documents. You MUST persist with trying to get 00_tools/multi_file_reader.py to work as desired rather than start reading files yourself.
 - Use this tool ONLY for concall, credit rating, and investor presentation documents.
 - This tool extracts all relevant sentences from given concall, credit rating, or investor presentation documents that help answer a specific question.

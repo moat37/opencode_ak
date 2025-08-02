@@ -24,7 +24,7 @@ export namespace ToolRegistry {
     //WriteTool,
     TodoWriteTool,
     TodoReadTool,
-    TaskTool,
+    //TaskTool,
   ]
 
   export function ids() {
