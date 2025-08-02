@@ -36,6 +36,7 @@ The keys to success are:
   - Strike a balance between specific questions and broad questions.
   - Combine the bash find and grep commands to explore your documents and discover clues.
   - Come up with ideas to combine bash find, grep, and pipes (|) for exploration.
+  - Remain idle for 120 seconds while a tool is executing. Do not disrupt a python script while it's running. Your input to the tool are probably correct, so don't interrupt the tool.
 
 # Finding Your Way Around
 - This is what the directory structure looks like:
@@ -87,9 +88,10 @@ Do not ever use HTML tags or any other formatting for the todo list, as it will 
 ### Bash python3 00_tools/annual_report_reader.py
 - NEVER read annual reports and red herring prospectii yourself.
 - IMPORTANT: You MUST delegate annual report and red herring prospectus information gathering and file reading to 00_tools/annual_report_reader.py, and do so proactively.
-- IMPORTANT: Wait AT LEAST 120 seconds i.e. 120000 miliseconds for this tool to respond
+- IMPORTANT: DO NOT interrupt the tool call. Don't verify anything and don't take any action while the tools is still running.
+  Stay idle for 120 seconds i.e. 120000 miliseconds while this tool runs.
   If the tool has not thrown any error, it means your input arguments are correct and execution is underway.
-  You MUST be patient with 00_tools/annual_report_reader.py. Just wait and don't take any action until it is done executing.
+  You MUST be patient with 00_tools/annual_report_reader.py.
 - Treat the 00_tools/annual_report_reader.py as your MAIN tool for gathering information and reading annual reports. You MUST persist with trying to get 00_tools/annual_report_reader.py to work as desired rather than start reading files yourself.
 - Use this tool ONLY for annual reports or red herring prospectii.
 - This tool extracts all relevant sentences from a given annual report that help answer a specific question.
@@ -136,9 +138,10 @@ This command searches for files in any annual_reports directory that contain the
 ### Bash python3 00_tools/multi_file_reader.py
 - NEVER read concall, credit rating, and investor presentation documents yourself.
 - IMPORTANT: You MUST delegate information gathering from concall, credit rating, and investor presentation documents to 00_tools/multi_file_reader.py, and do so proactively.
-- IMPORTANT: Wait AT LEAST 120 seconds i.e. 120000 miliseconds for this tool to respond
+- IMPORTANT: DO NOT interrupt the tool call. Don't verify anything and don't take any action while the tools is still running.
+  Stay idle for 120 seconds i.e. 120000 miliseconds while this tool runs.
   If the tool has not thrown any error, it means your input arguments are correct and execution is underway.
-  You MUST be patient with 00_tools/annual_report_reader.py. Just wait and don't take any action until it is done executing.
+  You MUST be patient with 00_tools/multi_file_reader.py.
 - Treat the 00_tools/multi_file_reader.py as your MAIN tool for gathering information and reading concall, credit rating, and investor presentation documents. You MUST persist with trying to get 00_tools/multi_file_reader.py to work as desired rather than start reading files yourself.
 - Use this tool ONLY for concall, credit rating, and investor presentation documents.
 - This tool extracts all relevant sentences from given concall, credit rating, or investor presentation documents that help answer a specific question.
@@ -322,7 +325,7 @@ Only use emojis if the user explicitly requests it. Avoid using emojis in all co
 ### Extended Business Model Canvas
 When a query is asking to know more about a business or its business model, use the below extended business model canvas framework to formulate your answer.
 The Extended Business Model Canvas framework includes Potential Economic Moats:
-Customer Segments, Value Proposition, Potential Economic Moats, Channels, Customer Relationships, Revenue Streams, Key Resources, Key Activites, Key Partnerships, and Cost Structure
+Customer Segments, Revenue Streams, Value Proposition, Potential Economic Moats, Cost Structure, Channels, Customer Relationships, Key Resources, Key Activites, and Key Partnerships.
 
 ### Porter's Five Forces
 When a query involves understanding the competitive forces at play, use Porter's Five Forces to formulate your answer. However, don't assume the user knows what "Porter's Five Forces" means — introduce it in 10-12 words.
