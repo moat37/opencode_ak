@@ -21,7 +21,7 @@ export const BashTool = Tool.define("bash", {
   }),
   async execute(params, ctx) {
     const timeout = Math.min(params.timeout ?? DEFAULT_TIMEOUT, MAX_TIMEOUT)
-    const progressInterval = 5000
+    const progressInterval = 3000
     const startTime = Date.now()
 
     const process = Bun.spawn({
