@@ -1,27 +1,27 @@
 import z from "zod"
 import { BashTool } from "./bash"
-import { EditTool } from "./edit"
-import { GlobTool } from "./glob"
-import { GrepTool } from "./grep"
-import { ListTool } from "./ls"
-import { PatchTool } from "./patch"
-import { ReadTool } from "./read"
+//import { EditTool } from "./edit"
+//import { GlobTool } from "./glob"
+//import { GrepTool } from "./grep"
+//import { ListTool } from "./ls"
+//import { PatchTool } from "./patch"
+//import { ReadTool } from "./read"
 import { TaskTool } from "./task"
 import { TodoWriteTool, TodoReadTool } from "./todo"
-import { WebFetchTool } from "./webfetch"
-import { WriteTool } from "./write"
+//import { WebFetchTool } from "./webfetch"
+//import { WriteTool } from "./write"
 
 export namespace ToolRegistry {
   const ALL = [
     BashTool,
-    EditTool,
-    WebFetchTool,
-    GlobTool,
-    GrepTool,
-    ListTool,
-    PatchTool,
-    ReadTool,
-    WriteTool,
+    //EditTool,
+    //WebFetchTool,
+    //GlobTool,
+    //GrepTool,
+    //ListTool,
+    //PatchTool,
+    //ReadTool,
+    //WriteTool,
     TodoWriteTool,
     TodoReadTool,
     TaskTool,
@@ -69,13 +69,13 @@ export namespace ToolRegistry {
         patch: false,
       }
     }
-    if (modelID.toLowerCase().includes("qwen")) {
-      return {
-        patch: false,
-        todowrite: false,
-        todoread: false,
-      }
-    }
+//    if (modelID.toLowerCase().includes("qwen")) {
+//      return {
+//        patch: false,
+//        todowrite: false,
+//        todoread: false,
+//      }
+//    }
     return {}
   }
 

@@ -3,7 +3,7 @@ import { Tool } from "./tool"
 import DESCRIPTION from "./bash.txt"
 import { App } from "../app/app"
 
-const MAX_OUTPUT_LENGTH = 30000
+const MAX_OUTPUT_LENGTH = 100000
 const DEFAULT_TIMEOUT = 1 * 60 * 1000
 const MAX_TIMEOUT = 10 * 60 * 1000
 
@@ -16,7 +16,7 @@ export const BashTool = Tool.define("bash", {
       .string()
       .optional()
       .describe(
-        "Clear, concise description of what this command does in 5-10 words. Examples:\nInput: ls\nOutput: Lists files in current directory\n\nInput: git status\nOutput: Shows working tree status\n\nInput: npm install\nOutput: Installs package dependencies\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
+        "[Optional]: Clear, concise description of what this command does in 5-10 words. Examples:\nInput: ls\nOutput: Lists files in current directory\n\nInput: git status\nOutput: Shows working tree status\n\nInput: npm install\nOutput: Installs package dependencies\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
       ),
   }),
   async execute(params, ctx) {
