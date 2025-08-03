@@ -1,9 +1,5 @@
 Executes a given bash command in a persistent shell session, ensuring proper handling and security measures.
 
-You MUST wait 120 seconds, i.e. 120000 milliseconds for the tool to run without interrupting its execution.
-If you did not get an error, that means the tool is running as intended. Don't interrupt the tool's run.
-Remain idle for 120 seconds.
-
 Before executing the command, please follow these steps:
 
 # Command Execution:
@@ -16,7 +12,6 @@ Before executing the command, please follow these steps:
 
 Usage notes:
   - The command argument is required.
-  - The commands will timeout automatically after 120000ms (2 minutes). You MUST remain idle till then.
   - When issuing multiple commands, use the ';' or '&&' operator to separate them. DO NOT use newlines (newlines are ok in quoted strings).
   - Use search commands like `find`, `grep`, and `ls` proactively.
   - NEVER use `cd`. Always use absolute paths.

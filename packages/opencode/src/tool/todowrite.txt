@@ -1,26 +1,22 @@
 Use this tool to create and manage a structured task list for your current coding session. This helps you track progress, organize complex tasks, and demonstrate thoroughness to the user.
 It also helps the user understand the progress of the task and overall progress of their requests.
 
-IMPORTANT: Explicitly include "Remain idle for 120 seconds while the tool executes" into your todo list in the steps that involve 00_tools/annual_report_reader.py and 00_tools/multi_file_reader.py tool calls.
-
 ## When to Use This Tool
 Use this tool proactively in these scenarios:
 
 1. Complex multi-step tasks - When a task requires 3 or more distinct steps or actions
 2. Non-trivial and complex tasks - Tasks that require careful planning or multiple operations
-3. When you have to call 00_tools/annual_report_reader.py or 00_tools/multi_file_reader.py and you need to remind yourself to remain idle for 120 seconds while the tool executes.
-4. User explicitly requests todo list - When the user directly asks you to use the todo list
-5. User provides multiple tasks - When users provide a list of things to be done (numbered or comma-separated)
-6. After receiving new instructions - Immediately capture user requirements as todos. Feel free to edit the todo list based on new information.
-7. After completing a task - Mark it complete and add any new follow-up tasks
-8. When you start working on a new task, mark the todo as in_progress. Ideally you should only have one todo as in_progress at a time. Complete existing tasks before starting new ones.
+3. User explicitly requests todo list - When the user directly asks you to use the todo list
+4. User provides multiple tasks - When users provide a list of things to be done (numbered or comma-separated)
+5. After receiving new instructions - Immediately capture user requirements as todos. Feel free to edit the todo list based on new information.
+6. After completing a task - Mark it complete and add any new follow-up tasks
+7. When you start working on a new task, mark the todo as in_progress. Ideally you should only have one todo as in_progress at a time. Complete existing tasks before starting new ones.
 
 ## When NOT to Use This Tool
 
 Skip using this tool when:
-1. There is only a single task that does not involve calling 00_tools/annual_report_reader.py or 00_tools/multi_file_reader.py
-2. There is no need to remain idle while any tool calls execute.
-3. The task is trivial and tracking it provides no organizational benefit
+1. There is only a single straightforward task
+2. The task is trivial and tracking it provides no organizational benefit
 
 ## Examples of When to Use the Todo List
 
