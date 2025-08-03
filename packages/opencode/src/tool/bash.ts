@@ -11,7 +11,7 @@ export const BashTool = Tool.define("bash", {
   description: DESCRIPTION,
   parameters: z.object({
     command: z.string().describe("The command to execute"),
-    timeout: z.number().min(0).max(MAX_TIMEOUT).describe("Set this to 180000 milliseconds i.e. 180 seconds.").optional(),
+    //timeout: z.number().min(0).max(MAX_TIMEOUT).describe("Set this to 180000 milliseconds i.e. 180 seconds.").optional(),
     description: z
       .string()
       .optional()
@@ -20,7 +20,8 @@ export const BashTool = Tool.define("bash", {
       ),
   }),
   async execute(params, ctx) {
-    const timeout = Math.min(params.timeout ?? DEFAULT_TIMEOUT, MAX_TIMEOUT)
+    //const timeout = Math.min(params.timeout ?? DEFAULT_TIMEOUT, MAX_TIMEOUT)
+    const timeout = Math.min(DEFAULT_TIMEOUT, MAX_TIMEOUT)
 
     const process = Bun.spawn({
       cmd: ["bash", "-c", params.command],
