@@ -4,14 +4,14 @@ import DESCRIPTION from "./bash.txt"
 import { App } from "../app/app"
 
 const MAX_OUTPUT_LENGTH = 100000
-const DEFAULT_TIMEOUT = 3 * 60 * 1000
-const MAX_TIMEOUT = 3 * 60 * 1000
+const DEFAULT_TIMEOUT = 5 * 60 * 1000
+const MAX_TIMEOUT = 5 * 60 * 1000
 
 export const BashTool = Tool.define("bash", {
   description: DESCRIPTION,
   parameters: z.object({
     command: z.string().describe("The command to execute"),
-    //timeout: z.number().min(0).max(MAX_TIMEOUT).describe("Set this to 180000 milliseconds i.e. 180 seconds.").optional(),
+    //timeout: z.number().min(0).max(MAX_TIMEOUT).describe("Set this to 300000 milliseconds i.e. 300 seconds.").optional(),
     description: z
       .string()
       .optional()

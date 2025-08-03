@@ -130,8 +130,8 @@ This command searches for files in any annual_reports directory that contain the
   00_tools/multi_file_reader.py is built to consolidate information from a set of concall, credit rating, and investor presentation documents and extract relevant snippets without losing fidelity.
   </commentary>
 - Err on the side of overusing this agent.
-- 00_tools/multi_file_reader.py can read up to 10 files per call.
-- If you have 10 concalls/investor presentations you want to find certain information from, pass all 10 in a single call.
+- 00_tools/multi_file_reader.py can read up to 4 files per call.
+- If you have 4 concalls/investor presentations you want to find certain information from, pass all 4 in a single call.
 - The question can be as long as you want. You MUST take full advantage of this if it increases thoroughness.
 - You can ask multiple questions at a time — up to 5 questions per tool call.
   If you have 10 points to inquire about from the same annual report (example, when using the extended business model canvas), make 2 calls with 5 questions each.
