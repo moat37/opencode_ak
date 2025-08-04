@@ -7,7 +7,7 @@ import path from "path"
 import os from "os"
 
 import PROMPT_ANTHROPIC from "./prompt/anthropic.txt"
-import PROMPT_ANTHROPIC_WITHOUT_TODO from "./prompt/qwen.txt"
+//import PROMPT_ANTHROPIC_WITHOUT_TODO from "./prompt/qwen.txt"
 import PROMPT_BEAST from "./prompt/beast.txt"
 import PROMPT_GEMINI from "./prompt/gemini.txt"
 import PROMPT_ANTHROPIC_SPOOF from "./prompt/anthropic_spoof.txt"
@@ -23,8 +23,7 @@ export namespace SystemPrompt {
     if (modelID.includes("gpt-") || modelID.includes("o1") || modelID.includes("o3")) return [PROMPT_BEAST]
     if (modelID.includes("gemini-")) return [PROMPT_GEMINI]
     if (modelID.includes("claude")) return [PROMPT_ANTHROPIC]
-    if (modelID.includes("kimi")) return [PROMPT_ANTHROPIC]
-    return [PROMPT_ANTHROPIC_WITHOUT_TODO]
+    return [PROMPT_ANTHROPIC]
   }
 
   export async function environment() {
