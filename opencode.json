@@ -17,7 +17,7 @@
         "qwen/qwen3-coder": {
           "options": {
             "provider": {
-              "order": ["baseten/fp8"],
+              "order": ["cerebras/fp8"],
               "allow_fallbacks": false
           }
         }
