@@ -1,6 +1,14 @@
 Use this tool to create and manage a structured task list for your current coding session. This helps you track progress, organize complex tasks, and demonstrate thoroughness to the user.
 It also helps the user understand the progress of the task and overall progress of their requests.
 
+IMPORTANT: The first item on the todo list should always be "Confirm this plan with the user"
+
+## After formulating the plan, ask for user's approval of the plan
+- Offer the user two options to choose from:
+"Does this plan look good to you?
+1. Looks good
+2. I want to suggest a change"
+
 ## When to Use This Tool
 Use this tool proactively in these scenarios:
 
@@ -24,12 +32,13 @@ Skip using this tool when:
 User: I want to add a dark mode toggle to the application settings. Make sure you run the tests and build when you're done!
 Assistant: I'll help add a dark mode toggle to your application settings. Let me create a todo list to track this implementation.
 *Creates todo list with the following items:*
-[ ] 1. Create dark mode toggle component in Settings page
-[ ] 2. Add dark mode state management (context/store)
-[ ] 3. Implement CSS-in-JS styles for dark theme
-[ ] 4. Update existing components to support theme switching
-[ ] 5. Run tests and build process, addressing any failures or errors that occur
-*Begins working on the first task*
+[ ] 1. Get confirmation from the user on this plan.
+[ ] 2. Create dark mode toggle component in Settings page
+[ ] 3. Add dark mode state management (context/store)
+[ ] 4. Implement CSS-in-JS styles for dark theme
+[ ] 5. Update existing components to support theme switching
+[ ] 6. Run tests and build process, addressing any failures or errors that occur
+*Begins working on the first task: Confirming the plan with the user.
 
 <reasoning>
 The assistant used the todo list because:
@@ -45,6 +54,10 @@ Assistant: Let me first search through your codebase to find all occurrences of 
 *Uses grep or search tools to locate all instances of getCwd in the codebase*
 Assistant: I've found 15 instances of 'getCwd' across 8 different files. Let me create a todo list to track these changes.
 *Creates todo list with specific items for each file that needs updating*
+*Begins with the first task: Confirming the plan with the user (run command read -t 20)*
+Assistant: Does this plan look good to you?
+1. Looks good
+2. I want to suggest a change
 
 <reasoning>
 The assistant used the todo list because:
@@ -60,8 +73,12 @@ The assistant used the todo list because:
 User: I need to implement these features for my e-commerce site: user registration, product catalog, shopping cart, and checkout flow.
 Assistant: I'll help implement these features. First, let's add all the features to the todo list.
 *Creates a todo list breaking down each feature into specific tasks based on the project architecture*
-Assistant: Let's start with user registration. This will involve creating database models, API endpoints, and frontend forms that integrate with your existing authentication system.
-
+*Begins with the first task: Confirming the plan with the user (bash command read -t 20)*
+<assistant>
+Assistant: Does this plan look good to you?
+1. Looks good
+2. I want to suggest a change
+</assistant>
 <reasoning>
 The assistant used the todo list because:
 1. The user provided multiple complex features to implement in a comma separated list
@@ -75,8 +92,14 @@ User: Can you help optimize my React application? It's rendering slowly and has 
 Assistant: I'll help optimize your React application. First, let me examine your codebase to identify potential performance bottlenecks.
 *Reviews component structure, render patterns, state management, and data fetching*
 Assistant: After analyzing your codebase, I've identified several performance issues. Let me create a todo list to track our optimization efforts.
-*Creates todo list with items like: 1) Implement memoization for expensive calculations in ProductList, 2) Add virtualization for long lists in Dashboard, 3) Optimize image loading in Gallery component, 4) Fix state update loops in ShoppingCart, 5) Review bundle size and implement code splitting*
-Let's start by implementing memoization for the expensive calculations in your ProductList component.</assistant>
+*Creates todo list with items like: 1) Confirm this plan with the user, 2) Implement memoization for expensive calculations in ProductList, 3) Add virtualization for long lists in Dashboard, 4) Optimize image loading in Gallery component, 5) Fix state update loops in ShoppingCart, 6) Review bundle size and implement code splitting*
+<assistant>
+Assistant:
+Let's start by confirming this plan.
+Does this plan look good to you?
+1. Looks good
+2. I want to suggest a change
+</assistant>
 
 <reasoning>
 The assistant used the todo list because:
@@ -92,6 +115,7 @@ The assistant used the todo list because:
 
 <example>
 User: How do I print 'Hello World' in Python?
+<assistant>
 Assistant: In Python, you can print "Hello World" with this simple code:
 
 python
