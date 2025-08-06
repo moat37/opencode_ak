@@ -20,7 +20,7 @@ export namespace SystemPrompt {
     return []
   }
   export function provider(modelID: string) {
-    if (modelID.includes("gpt-") || modelID.includes("o1") || modelID.includes("o3")) return [PROMPT_BEAST]
+    if (modelID.includes("gpt-") || modelID.includes("o1") || modelID.includes("o3")) return [PROMPT_ANTHROPIC]
     if (modelID.includes("gemini-")) return [PROMPT_GEMINI]
     if (modelID.includes("claude")) return [PROMPT_ANTHROPIC]
     return [PROMPT_ANTHROPIC]

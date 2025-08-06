@@ -21,3 +21,17 @@ Usage notes:
     <bad-example>
     cd /foo/bar && pytest tests
     </bad-example>
+
+NOTE: When looking for the ticker symbol, you must perform grep on the SAME words used by the user.
+<example>
+<context>
+user used the word "reliance"
+</context>
+user: "I want to know reliance's competitive advantages"
+assistant:
+I must first find the correct ticker symbol for 'reliance' — the exact word specified by the user.
+$ grep -A 1 -i "reliance" 00_tools/tickers_and_names.json
+<commentary>
+You must bash grep "reliance", not "reliance industries".
+</commentary>
+</example>
