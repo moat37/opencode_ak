@@ -35,7 +35,7 @@ export namespace SystemPrompt {
         `  Working directory: ${app.path.cwd}`,
         `  Is directory a git repo: ${app.git ? "yes" : "no"}`,
         `  Platform: ${process.platform}`,
-        `  Today's date: ${new Date().toDateString()}`,
+        `  Today's date: ${new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000)).toDateString()} [Indian Standard Time, UTC+5:30]`, //Modified to IST
         `</env>`,
         `<project>`,
         `  ${
