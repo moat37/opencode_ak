@@ -30,17 +30,32 @@ export const BashTool = Tool.define("bash", {
   description: DESCRIPTION,
   parameters: z.object({
     command: z.string().describe("The command to execute"),
-    //timeout: z.number().min(0).max(MAX_TIMEOUT).describe("Set this to 300000 milliseconds i.e. 300 seconds.").optional(),
+    //timeout: z.number().describe("Optional timeout in milliseconds").optional(),
     description: z
       .string()
       .optional()
       .describe(
-        "[Optional]: Clear, concise description of what this command does in 5-10 words. Examples:\nInput: ls\nOutput: Lists files in current directory\n\nInput: git status\nOutput: Shows working tree status\n\nInput: npm install\nOutput: Installs package dependencies\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
+        "Clear, concise description of what this command does in 5-10 words. Examples:\nInput: ls\nOutput: Lists files in current directory\n\nInput: git status\nOutput: Shows working tree status\n\nInput: npm install\nOutput: Installs package dependencies\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
       ),
   }),
   async execute(params, ctx) {
     //const timeout = Math.min(params.timeout ?? DEFAULT_TIMEOUT, MAX_TIMEOUT)
     const timeout = Math.min(DEFAULT_TIMEOUT, MAX_TIMEOUT)
+    const app = App.info()
+    const cfg = await Config.get()
+    const tree = await parser().then((p) => p.parse(params.command))
+    const permissions = (() => {
+      const value = cfg.permission?.bash
+      if (!value)
+        return {
+          "*": "allow",
+        }
+      if (typeof value === "string")
+        return {
+          "*": value,
+        }
+      return value
+    })()
 
     let needsAsk = false
     for (const node of tree.rootNode.descendantsOfType("command")) {
