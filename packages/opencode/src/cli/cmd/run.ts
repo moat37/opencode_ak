@@ -84,15 +84,15 @@ export const RunCommand = cmd({
         return
       }
 
-      UI.empty()
-      UI.println(UI.logo())
-      UI.empty()
+      //UI.empty()
+      //UI.println(UI.logo())
+      //UI.empty()
 
       const cfg = await Config.get()
       if (cfg.share === "auto" || Flag.OPENCODE_AUTO_SHARE || args.share) {
         try {
           await Session.share(session.id)
-          UI.println(UI.Style.TEXT_INFO_BOLD + "~  https://opencode.ai/s/" + session.id.slice(-8))
+          //UI.println(UI.Style.TEXT_INFO_BOLD + "~  https://opencode.ai/s/" + session.id.slice(-8))
         } catch (error) {
           if (error instanceof Error && error.message.includes("disabled")) {
             UI.println(UI.Style.TEXT_DANGER_BOLD + "!  " + error.message)
@@ -105,15 +105,16 @@ export const RunCommand = cmd({
 
       const mode = args.mode ? await Mode.get(args.mode) : await Mode.list().then((x) => x[0])
       const { providerID, modelID } = args.model ? Provider.parseModel(args.model) : mode.model ?? await Provider.defaultModel()
-      UI.println(UI.Style.TEXT_NORMAL_BOLD + "@ ", UI.Style.TEXT_NORMAL + `${providerID}/${modelID}`)
+      //UI.println(UI.Style.TEXT_NORMAL_BOLD + "@ ", UI.Style.TEXT_NORMAL + `${providerID}/${modelID}`)
       UI.empty()
 
       function printEvent(color: string, type: string, title: string) {
         UI.println(
-          color + `|`,
-          UI.Style.TEXT_NORMAL + UI.Style.TEXT_DIM + ` ${type.padEnd(7, " ")}`,
-          "",
-          UI.Style.TEXT_NORMAL + title,
+          //color + `|`,
+          //UI.Style.TEXT_NORMAL + UI.Style.TEXT_DIM + ` ${type.padEnd(7, " ")}`,
+          //"",
+          //UI.Style.TEXT_NORMAL + title,  // Lines commented out by Akshay to get just the JSON structure
+          title // Line added by Akshay
         )
       }
 
@@ -134,9 +135,9 @@ export const RunCommand = cmd({
           text = part.text
 
           if (part.time?.end) {
-            UI.empty()
-            UI.println(UI.markdown(text))
-            UI.empty()
+          //  UI.empty()
+          //  UI.println(UI.markdown(text)) //These lines were commented out by Akshay to prevent the final answer from being printed twice
+          //  UI.empty()
             text = ""
             return
           }

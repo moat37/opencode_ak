@@ -8,8 +8,9 @@ Your Todo list is flexible and open to change.
 
 ## After formulating the plan, ask for user's approval of the plan
 - Offer the user two options to choose from:
-"Does this plan look good to you?
-1. Looks good
+Example (paraphrase this):
+"Shall we proceed with this plan?
+1. Yes
 2. I want to suggest a change"
 
 ## When to Use This Tool
@@ -58,8 +59,8 @@ Assistant: Let me first search through your codebase to find all occurrences of 
 Assistant: I've found 15 instances of 'getCwd' across 8 different files. Let me create a todo list to track these changes.
 *Creates todo list with specific items for each file that needs updating*
 *Begins with the first task: Confirming the plan with the user (run command read -t 20)*
-Assistant: Does this plan look good to you?
-1. Looks good
+Assistant: Is this plan good to go?
+1. Yes
 2. I want to suggest a change
 
 <reasoning>
@@ -78,8 +79,8 @@ Assistant: I'll help implement these features. First, let's add all the features
 *Creates a todo list breaking down each feature into specific tasks based on the project architecture*
 *Begins with the first task: Confirming the plan with the user (bash command read -t 20)*
 <assistant>
-Assistant: Does this plan look good to you?
-1. Looks good
+Assistant: Is this a good way to proceed?
+1. Yes
 2. I want to suggest a change
 </assistant>
 <reasoning>
@@ -99,8 +100,8 @@ Assistant: After analyzing your codebase, I've identified several performance is
 <assistant>
 Assistant:
 Let's start by confirming this plan.
-Does this plan look good to you?
-1. Looks good
+Does this plan look good?
+1. Yes
 2. I want to suggest a change
 </assistant>
 
