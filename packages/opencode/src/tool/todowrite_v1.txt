@@ -1,6 +1,12 @@
 Use this tool to create and manage a structured task list for your current session. This helps you track progress, organize complex tasks, and demonstrate thoroughness to the user.
 It also helps the user understand the progress of the task and overall progress of their requests.
 
+IMPORTANT: The zeroth item on the todo list should always be "Confirm this plan with the user"
+Always number your todo list: 0 (Confirm plan with user), 1, 2, 3, etc.
+Example:
+- [ ] 0. Get confirmation from the user on this plan.
+- [ ] 1. Locate MSUMI's folder and identify key documents (annual reports, concalls)
+
 Note: The todo list is intended to maintain structure to your execution, but you must continue to ask the user how they would like to proceed.
 Your Todo list is flexible and open to change.
 
@@ -34,6 +40,7 @@ Skip using this tool when:
 User: I want to add a dark mode toggle to the application settings. Make sure you run the tests and build when you're done!
 Assistant: I'll help add a dark mode toggle to your application settings. Let me create a todo list to track this implementation.
 *Creates todo list with the following items:*
+- [ ] 0. Get confirmation from the user on this plan.
 - [ ] 1. Create dark mode toggle component in Settings page
 - [ ] 2. Add dark mode state management (context/store)
 - [ ] 3. Implement CSS-in-JS styles for dark theme
@@ -55,7 +62,7 @@ Assistant: Let me first search through your codebase to find all occurrences of 
 *Uses grep or search tools to locate all instances of getCwd in the codebase*
 Assistant: I've found 15 instances of 'getCwd' across 8 different files. Let me create a todo list to track these changes.
 *Creates todo list with specific items for each file that needs updating*
-*Confirms the plan with the user before proceeding*
+*Begins with the first task: Confirming the plan with the user (run command read -t 20)*
 Assistant: Is this plan good to go?
 1. Yes
 2. I want to suggest a change
@@ -74,7 +81,7 @@ The assistant used the todo list because:
 User: I need to implement these features for my e-commerce site: user registration, product catalog, shopping cart, and checkout flow.
 Assistant: I'll help implement these features. First, let's add all the features to the todo list.
 *Creates a todo list breaking down each feature into specific tasks based on the project architecture*
-*Confirms the plan with the user before proceeding*
+*Begins with the first task: Confirming the plan with the user (bash command read -t 20)*
 <assistant>
 Assistant: Is this a good way to proceed?
 1. Yes
@@ -93,7 +100,7 @@ User: Can you help optimize my React application? It's rendering slowly and has 
 Assistant: I'll help optimize your React application. First, let me examine your codebase to identify potential performance bottlenecks.
 *Reviews component structure, render patterns, state management, and data fetching*
 Assistant: After analyzing your codebase, I've identified several performance issues. Let me create a todo list to track our optimization efforts.
-*Creates todo list with items like: 1) Implement memoization for expensive calculations in ProductList, 2) Add virtualization for long lists in Dashboard, 3) Optimize image loading in Gallery component, 4) Fix state update loops in ShoppingCart, 5) Review bundle size and implement code splitting*
+*Creates todo list with items like: 0) Confirm this plan with the user, 1) Implement memoization for expensive calculations in ProductList, 2) Add virtualization for long lists in Dashboard, 3) Optimize image loading in Gallery component, 4) Fix state update loops in ShoppingCart, 5) Review bundle size and implement code splitting*
 <assistant>
 Assistant:
 Let's start by confirming this plan.
