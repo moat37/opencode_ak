@@ -135,9 +135,9 @@ export const RunCommand = cmd({
           text = part.text
 
           if (part.time?.end) {
-          //  UI.empty()
-          //  UI.println(UI.markdown(text)) //These lines were commented out by Akshay to prevent the final answer from being printed twice
-          //  UI.empty()
+            UI.empty()
+            UI.println(UI.markdown(text)) //These lines were commented out by Akshay to prevent the final answer from being printed twice
+            UI.empty()
             text = ""
             return
           }
@@ -177,9 +177,9 @@ export const RunCommand = cmd({
 
       const isPiped = !process.stdout.isTTY
       if (isPiped) {
-        const match = result.parts.findLast((x) => x.type === "text")
-        if (match) process.stdout.write(UI.markdown(match.text))
-        if (errorMsg) process.stdout.write(errorMsg)
+        //const match = result.parts.findLast((x) => x.type === "text")  //These lines were commented out by Akshay to prevent the final answer from being printed twice
+        //if (match) process.stdout.write(UI.markdown(match.text))
+        //if (errorMsg) process.stdout.write(errorMsg)
       }
       UI.empty()
     })
