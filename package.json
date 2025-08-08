@@ -7,8 +7,7 @@
   "scripts": {
     "dev": "bun run --conditions=development packages/opencode/src/index.ts",
     "typecheck": "bun run --filter='*' typecheck",
-    "stainless": "./scripts/stainless",
-    "postinstall": "./script/hooks"
+    "stainless": "./scripts/stainless"
   },
   "workspaces": {
     "packages": [
