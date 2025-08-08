@@ -200,6 +200,9 @@ export type Part =
   | ({
       type: "patch"
     } & PatchPart)
+  | ({
+      type: "agent"
+    } & AgentPart)
 
 export type TextPart = {
   id: string
@@ -374,6 +377,19 @@ export type PatchPart = {
   files: Array<string>
 }
 
+export type AgentPart = {
+  id: string
+  sessionID: string
+  messageID: string
+  type: string
+  name: string
+  source?: {
+    value: string
+    start: number
+    end: number
+  }
+}
+
 export type EventMessagePartRemoved = {
   type: string
   properties: {
@@ -537,6 +553,7 @@ export type Config = {
   theme?: string
   keybinds?: KeybindsConfig
   plugin?: Array<string>
+  snapshot?: boolean
   /**
    * Control sharing behavior:'manual' allows manual sharing via commands, 'auto' enables automatic sharing, 'disabled' disables all sharing
    */
@@ -558,7 +575,7 @@ export type Config = {
    */
   model?: string
   /**
-   * Small model to use for tasks like summarization and title generation in the format of provider/model
+   * Small model to use for tasks like title generation in the format of provider/model
    */
   small_model?: string
   /**
@@ -566,17 +583,19 @@ export type Config = {
    */
   username?: string
   /**
-   * Modes configuration, see https://opencode.ai/docs/modes
+   * @deprecated Use `agent` field instead.
    */
   mode?: {
-    build?: ModeConfig
-    plan?: ModeConfig
-    [key: string]: ModeConfig | undefined
+    build?: AgentConfig
+    plan?: AgentConfig
+    [key: string]: AgentConfig | undefined
   }
   /**
-   * Modes configuration, see https://opencode.ai/docs/modes
+   * Agent configuration, see https://opencode.ai/docs/agent
    */
   agent?: {
+    plan?: AgentConfig
+    build?: AgentConfig
     general?: AgentConfig
     [key: string]: AgentConfig | undefined
   }
@@ -703,13 +722,21 @@ export type KeybindsConfig = {
    */
   app_help: string
   /**
-   * Next mode
+   * @deprecated use switch_agent. Next mode
    */
   switch_mode: string
   /**
-   * Previous Mode
+   * @deprecated use switch_agent_reverse. Previous mode
    */
   switch_mode_reverse: string
+  /**
+   * Next agent
+   */
+  switch_agent: string
+  /**
+   * Previous agent
+   */
+  switch_agent_reverse: string
   /**
    * Open external editor
    */
@@ -848,7 +875,7 @@ export type KeybindsConfig = {
   app_exit: string
 }
 
-export type ModeConfig = {
+export type AgentConfig = {
   model?: string
   temperature?: number
   top_p?: number
@@ -857,10 +884,11 @@ export type ModeConfig = {
     [key: string]: boolean
   }
   disable?: boolean
-}
-
-export type AgentConfig = ModeConfig & {
-  description: string
+  /**
+   * Description of when to use the agent
+   */
+  description?: string
+  mode?: string
 }
 
 export type Provider = {
@@ -967,6 +995,17 @@ export type FilePartInput = {
   source?: FilePartSource
 }
 
+export type AgentPartInput = {
+  id?: string
+  type: string
+  name: string
+  source?: {
+    value: string
+    start: number
+    end: number
+  }
+}
+
 export type Symbol = {
   name: string
   kind: number
@@ -983,10 +1022,12 @@ export type File = {
   status: "added" | "deleted" | "modified"
 }
 
-export type Mode = {
+export type Agent = {
   name: string
-  temperature?: number
+  description?: string
+  mode: string
   topP?: number
+  temperature?: number
   model?: {
     modelID: string
     providerID: string
@@ -1120,6 +1161,24 @@ export type SessionDeleteResponses = {
 
 export type SessionDeleteResponse = SessionDeleteResponses[keyof SessionDeleteResponses]
 
+export type SessionGetData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/session/{id}"
+}
+
+export type SessionGetResponses = {
+  /**
+   * Get session
+   */
+  200: Session
+}
+
+export type SessionGetResponse = SessionGetResponses[keyof SessionGetResponses]
+
 export type SessionInitData = {
   body?: {
     messageID: string
@@ -1252,7 +1311,7 @@ export type SessionChatData = {
     messageID?: string
     providerID: string
     modelID: string
-    mode?: string
+    agent?: string
     system?: string
     tools?: {
       [key: string]: boolean
@@ -1264,6 +1323,9 @@ export type SessionChatData = {
       | ({
           type: "file"
         } & FilePartInput)
+      | ({
+          type: "agent"
+        } & AgentPartInput)
     >
   }
   path: {
@@ -1537,21 +1599,21 @@ export type AppLogResponses = {
 
 export type AppLogResponse = AppLogResponses[keyof AppLogResponses]
 
-export type AppModesData = {
+export type AppAgentsData = {
   body?: never
   path?: never
   query?: never
-  url: "/mode"
+  url: "/agent"
 }
 
-export type AppModesResponses = {
+export type AppAgentsResponses = {
   /**
-   * List of modes
+   * List of agents
    */
-  200: Array<Mode>
+  200: Array<Agent>
 }
 
-export type AppModesResponse = AppModesResponses[keyof AppModesResponses]
+export type AppAgentsResponse = AppAgentsResponses[keyof AppAgentsResponses]
 
 export type TuiAppendPromptData = {
   body?: {
