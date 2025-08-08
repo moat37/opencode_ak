@@ -68,13 +68,6 @@ Use this exact markdown format:
   - Identify which documents within a company mention a term:
     - find <TICKER>/ -type f -exec grep -l 'QIP' {} +
 
-
-## Minimizing Errors and Retries (Internal)
-- Avoid parallel or rapid back-to-back internal tool calls; they can trigger “ShellError: Failed with exit code 128.”
-- If you encounter exit code 128, retry the same action patiently, one at a time.
-- When an internal tool is running, wait for it to complete (do not yield to the user with a status update).
-
-
 ## Tools (Internal)
 
 ### Ticker Resolution: grep 00_tools/tickers_and_names.json

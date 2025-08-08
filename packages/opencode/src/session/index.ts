@@ -883,16 +883,16 @@ export namespace Session {
           messages,
         }
       },
-      async experimental_repairToolCall(input) {
-        return {
-          ...input.toolCall,
-          input: JSON.stringify({
-            tool: input.toolCall.toolName,
-            error: input.error.message,
-          }),
-          toolName: "invalid",
-        }
-      },
+      //async experimental_repairToolCall(input) {
+      //  return {
+      //    ...input.toolCall,
+      //    input: JSON.stringify({
+      //      tool: input.toolCall.toolName,
+      //      error: input.error.message,
+      //    }),
+      //    toolName: "invalid",
+      //  }
+      //},
       maxRetries: 3,
       activeTools: Object.keys(tools).filter((x) => x !== "invalid"),
       maxOutputTokens: outputLimit,

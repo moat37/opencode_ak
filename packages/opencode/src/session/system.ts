@@ -6,7 +6,7 @@ import { Config } from "../config/config"
 import path from "path"
 import os from "os"
 
-import PROMPT_COPILOT from "./prompt/copilot.txt"
+import PROMPT_COPILOT_4 from "./prompt/copilot_4.txt"
 import PROMPT_COPILOT_5 from "./prompt/copilot_5.txt"
 import PROMPT_ANTHROPIC_WITHOUT_TODO from "./prompt/qwen.txt"
 import PROMPT_BEAST from "./prompt/beast.txt"
@@ -22,9 +22,12 @@ export namespace SystemPrompt {
   }
   export function provider(modelID: string) {
     if (modelID.includes("gpt-") || modelID.includes("o1") || modelID.includes("o3")) return [PROMPT_COPILOT_5]
-    if (modelID.includes("gemini-")) return [PROMPT_COPILOT]
-    if (modelID.includes("claude")) return [PROMPT_COPILOT]
-    return [PROMPT_COPILOT_5]
+    if (modelID.includes("gemini-")) return [PROMPT_COPILOT_5]
+    if (modelID.includes("claude")) return [PROMPT_COPILOT_4]
+    if (modelID.includes("kimi")) return [PROMPT_COPILOT_4]
+    if (modelID.includes("qwen")) return [PROMPT_COPILOT_4]
+    if (modelID.includes("glm")) return [PROMPT_COPILOT_4]
+    return [PROMPT_COPILOT_4]
   }
 
   export async function environment() {
