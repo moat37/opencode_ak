@@ -1,7 +1,8 @@
 Launch a new agent to handle complex, multi-step tasks autonomously. 
 
 Available agent types and the tools they have access to:
-{agents}
+exec agent
+police agent
 
 When using the Task tool, you must specify a subagent_type parameter to select which agent type to use.
 

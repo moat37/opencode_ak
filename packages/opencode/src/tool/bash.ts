@@ -16,7 +16,7 @@ export const BashTool = Tool.define("bash", {
       .string()
       .optional()
       .describe(
-        "Clear, concise description of what this command does in 5-10 words. Examples:\nInput: ls\nOutput: Lists files in current directory\n\nInput: git status\nOutput: Shows working tree status\n\nInput: npm install\nOutput: Installs package dependencies\n\nInput: mkdir foo\nOutput: Creates directory 'foo'",
+        "User-facing description of what you are doing. Do not mention what you're using or how you are doing it. Keep it clear and concise. Use words like 'companies' (i.e. external-facing) instead of 'directories' (i.e. internal-facing). Use present continuous tense. Examples: 'Looking for automobile companies', 'Getting industries for each company'",
       ),
   }),
   async execute(params, ctx) {

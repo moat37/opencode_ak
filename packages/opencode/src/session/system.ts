@@ -6,6 +6,7 @@ import { Config } from "../config/config"
 import path from "path"
 import os from "os"
 
+import PROMPT_COPILOT_3 from "./prompt/copilot_3.txt"
 import PROMPT_COPILOT_4 from "./prompt/copilot_4.txt"
 import PROMPT_COPILOT_5 from "./prompt/copilot_5.txt"
 //import PROMPT_ANTHROPIC_WITHOUT_TODO from "./prompt/qwen.txt"
@@ -23,7 +24,7 @@ export namespace SystemPrompt {
   export function provider(modelID: string) {
     if (modelID.includes("gpt-") || modelID.includes("o1") || modelID.includes("o3")) return [PROMPT_COPILOT_5]
     if (modelID.includes("gemini-")) return [PROMPT_COPILOT_5]
-    if (modelID.includes("claude")) return [PROMPT_COPILOT_4]
+    if (modelID.includes("claude")) return [PROMPT_COPILOT_5]
     if (modelID.includes("kimi")) return [PROMPT_COPILOT_4]
     if (modelID.includes("qwen")) return [PROMPT_COPILOT_4]
     if (modelID.includes("glm")) return [PROMPT_COPILOT_4]
@@ -37,8 +38,8 @@ export namespace SystemPrompt {
         `Here is some useful information about the environment you are running in:`,
         `<env>`,
         `  Working directory: ${app.path.cwd}`,
-        `  Is directory a git repo: ${app.git ? "yes" : "no"}`,
-        `  Platform: ${process.platform}`,
+        //`  Is directory a git repo: ${app.git ? "yes" : "no"}`,
+        //`  Platform: ${process.platform}`,
         `  Today's date: ${new Date(new Date().getTime() + (5.5 * 60 * 60 * 1000)).toDateString()} [Indian Standard Time, UTC+5:30]`, //Modified to IST
         `</env>`,
         `<project>`,

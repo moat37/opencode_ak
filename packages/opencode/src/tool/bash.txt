@@ -22,61 +22,17 @@ Usage notes:
     cd /foo/bar && pytest tests
     </bad-example>
 
-Reminder: When looking for the ticker symbol, you must perform grep on the SAME words used by the user.
-<example>
-<context>
-user used the word "reliance"
-</context>
-user: "I want to know reliance's competitive advantages"
-assistant:
-I must first find the correct ticker symbol for 'reliance' — the exact word specified by the user.
-$ grep -A 1 -i "reliance" 00_tools/tickers_and_names.json
-<commentary>
-You must bash grep "reliance", not "reliance industries".
-</commentary>
-</example>
+# How to call 00_tools/annual_report_reader.py
+  Run the following bash command —
+  $ python3 00_tools/annual_report_reader.py "<questions>" <annual_report_file_path>
+  Examples of the tool call:
+  $ python3 00_tools/annual_report_reader.py "What are the main objectives that the management is driving the company towards? Has the management stated a vision for the company? Are there any stated milestones?" TCS/annual_reports/annual_report_2024.txt
+  $ python3 00_tools/annual_report_reader.py "Is this company a part of the TATA Group? A company is deemed to be a part of a group if it explicitly states so. Else, it is considered to not be a part of that group." TITAN/annual_reports/annual_report_2024.txt
 
-Reminder: When searching for a ticker symbol, remember to confirm the identified ticker symbol(s) with the user before proceeding.
-You MUST confirm with the user that you've got the correct ticker symbol(s).
-Present 2-3 options to the user to get their response.
-This can be skipped if the word the user used is confirmed to be a valid ticker via 00_tools/tickers_and_names.json.
-<example>
-<context>
-The user said they want to know something about "adani energy".
-You performed bash grep "adani energy" on 00_tools/tickers_and_names.json and found one matching ticker symbol: ADANIENSOL
-</context> 
-assistant:
-"Is ADANIENSOL the ticker symbol of the company you're referring?
-
-1. Yes
-2. No, I'm referring to a different company.
-3. I'm not sure, can I see the list of all Adani companies in the energy sector?"
-</example>
-<example>
-<context>
-The user said they want to know something about "mahindra".
-You performed bash grep "mahindra" on 00_tools/tickers_and_names.json and found multiple companies with "Mahindra" in their names.
-</context> 
-assistant:
-"I'd like to confirm which Mahindra company you're asking about:
-
-1. Mahindra And Mahindra Ltd (M&M)
-2. Tech Mahindra Limited (TECHM)
-3. Mahindra & Mahindra Financial Services Ltd (M&MFIN)
-4. None. I'm asking about a different 'mahindra'."
-</example>
-Here's when you should not confirm the ticker symbol with the user:
-The word used by the user turns out to be an EXACT match with a ticker symbol in 00_tools/tickers_and_names.json
-<example>
-<context>
-The user said they want to know something about "escorts".
-You performed bash grep "escorts" on 00_tools/tickers_and_names.json and found an exact match with ticker "ESCORTS".
-</context> 
-assistant:
-"I have confirmed 'escorts' is a valid ticker symbol."
-[Proceeds with the task without asking for confirmation]
-<commentary>
-The word used by the user turned out to be a valid ticker symbol. This suffices as a confirmation, and no explicit confirmation is necessary.
-</commentary>
-</example>
+# How to call 00_tools/multi_file_reader.py
+  Run the following bash command —
+  $ python3 00_tools/multi_file_reader.py "<questions>" <file_path1> <file_path2> ...
+  Examples of the tool call:
+  $ python3 00_tools/multi_file_reader.py "What are the main objectives that the management is driving the company towards? Has the management stated a vision for the company? Are there any stated milestones?" TCS/concalls/concall_transcript_2023_Jan.txt TCS/concalls/concall_transcript_2023_Apr.txt TCS/concalls/concall_transcript_2023_Jul.txt
+  $ python3 00_tools/multi_file_reader.py "What was the capacity utilization in the last two quarters? What is the status of the capex projects?" MAITHANALL/concalls/concall_transcript_2025_Jul.txt MAITHANALL/concalls/concall_transcript_2025_Apr.txt
 
