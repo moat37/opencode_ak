@@ -126,7 +126,7 @@ export const RunCommand = cmd({
  
       // Added by Akshay to enable --compact flag under run command
       if (args.compact) {
-        UI.println(UI.Style.TEXT_INFO_BOLD + "~  Compacting session...")
+        //UI.println(UI.Style.TEXT_INFO_BOLD + "~  Compacting session...")
         
         // Added by Akshay. Start a server instance to handle the summarize request
         const server = Server.listen({
@@ -151,7 +151,7 @@ export const RunCommand = cmd({
             throw new Error(`HTTP ${response.status}: ${await response.text()}`)
           }
             
-          UI.println(UI.Style.TEXT_SUCCESS_BOLD + "✓  Session compacted successfully")
+          //UI.println(UI.Style.TEXT_SUCCESS_BOLD + "✓  Session compacted successfully")
         } catch (error) {
           UI.error("Failed to compact session: " + (error instanceof Error ? error.message : String(error)))
           return
