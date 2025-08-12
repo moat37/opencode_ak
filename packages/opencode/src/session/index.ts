@@ -1000,7 +1000,8 @@ export namespace Session {
                   sessionID: assistantMsg.sessionID,
                   type: "tool",
                   tool: value.toolName,
-                  callID: value.id,
+                  // Added by Akshay. Sanitize toolCallId to ensure it matches the required pattern ^[a-zA-Z0-9_-]+$
+                  callID: value.id.replace(/[^a-zA-Z0-9_-]/g, '_'),
                   state: {
                     status: "pending",
                   },

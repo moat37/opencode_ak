@@ -363,7 +363,8 @@ export namespace MessageV2 {
             {
               ...base,
               type: "tool",
-              callID: part.toolInvocation.toolCallId,
+              // Added by Akshay. Sanitize toolCallId to ensure it matches the required pattern ^[a-zA-Z0-9_-]+$
+              callID: part.toolInvocation.toolCallId.replace(/[^a-zA-Z0-9_-]/g, '_'),
               tool: part.toolInvocation.toolName,
               state: (() => {
                 if (part.toolInvocation.state === "partial-call") {
@@ -506,12 +507,15 @@ export namespace MessageV2 {
                 },
               ]
             if (part.type === "tool") {
+              // Added by Akshay. Sanitize toolCallId to ensure it matches the required pattern ^[a-zA-Z0-9_-]+$
+              const sanitizedToolCallId = part.callID.replace(/[^a-zA-Z0-9_-]/g, '_');
               if (part.state.status === "completed")
                 return [
                   {
                     type: ("tool-" + part.tool) as `tool-${string}`,
                     state: "output-available",
-                    toolCallId: part.callID,
+                    //toolCallId: part.callID,
+                    toolCallId: sanitizedToolCallId, //Modified by Akshay
                     input: part.state.input,
                     output: part.state.output,
                   },
@@ -521,7 +525,8 @@ export namespace MessageV2 {
                   {
                     type: ("tool-" + part.tool) as `tool-${string}`,
                     state: "output-error",
-                    toolCallId: part.callID,
+                    //toolCallId: part.callID,
+                    toolCallId: sanitizedToolCallId, //Modified by Akshay
                     input: part.state.input,
                     errorText: part.state.error,
                   },

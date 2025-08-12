@@ -10,6 +10,7 @@ import { bootstrap } from "../bootstrap"
 import { MessageV2 } from "../../session/message-v2"
 import { Identifier } from "../../id/id"
 import { Agent } from "../../agent/agent"
+import { Server } from "../../server/server" //Added by Akshay
 
 const TOOL: Record<string, [string, string]> = {
   todowrite: ["Todo", UI.Style.TEXT_WARNING_BOLD],
@@ -57,6 +58,10 @@ export const RunCommand = cmd({
       .option("agent", {
         type: "string",
         describe: "agent to use",
+      })
+      .option("compact", {  
+        type: "boolean",  
+        describe: "compact/summarize the session before sending message",  //Added by Akshay
       })
   },
   handler: async (args) => {
@@ -118,6 +123,49 @@ export const RunCommand = cmd({
 
       //UI.println(UI.Style.TEXT_NORMAL_BOLD + "@ ", UI.Style.TEXT_NORMAL + `${providerID}/${modelID}`)
       UI.empty()
+ 
+      // Added by Akshay to enable --compact flag under run command
+      if (args.compact) {
+        UI.println(UI.Style.TEXT_INFO_BOLD + "~  Compacting session...")
+        
+        // Added by Akshay. Start a server instance to handle the summarize request
+        const server = Server.listen({
+          port: 0, // Use port 0 for dynamic port assignment
+          hostname: "127.0.0.1",
+        })
+        
+        try {
+          // Call the backend API endpoint that uses proper provider transformations
+          const response = await fetch(`${server.url}/session/${session.id}/summarize`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              providerID,
+              modelID,
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${await response.text()}`)
+          }
+            
+          UI.println(UI.Style.TEXT_SUCCESS_BOLD + "✓  Session compacted successfully")
+        } catch (error) {
+          UI.error("Failed to compact session: " + (error instanceof Error ? error.message : String(error)))
+          return
+        } finally {
+          // Clean up the server instance
+          server.stop()
+        }
+        UI.empty()
+          
+        // If only compacting (no message provided), exit here
+        if (!message.trim()) {
+          return
+        }
+      }
 
       function printEvent(color: string, type: string, title: string) {
         UI.println(
