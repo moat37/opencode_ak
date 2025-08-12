@@ -63,6 +63,10 @@ export const RunCommand = cmd({
         type: "boolean",  
         describe: "compact/summarize the session before sending message",  //Added by Akshay
       })
+      .option("get-session", {
+        type: "boolean",
+        describe: "output the session ID",
+      })
   },
   handler: async (args) => {
     let message = args.message.join(" ")
@@ -87,6 +91,14 @@ export const RunCommand = cmd({
       if (!session) {
         UI.error("Session not found")
         return
+      }
+
+      // Added by Akshay to enable a --get-session flag under run command
+      if (args["get-session"]) {
+        UI.println(session.id)  // Outputs the full session ID
+        if (!message.trim()) {
+          return  // Exit early if only getting session ID
+        }
       }
 
       //UI.empty()
