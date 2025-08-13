@@ -107,18 +107,7 @@ export const RunCommand = cmd({
 
       // Added by Akshay to enable a --get-tokens flag under run command
       if (args["get-tokens"]) {
-        const msgs = await Session.messages(session.id)
-        // Find the last summary message to determine the current context window
-        const lastSummaryIndex = msgs.findLastIndex(msg => msg.info.role === "assistant" && msg.info.summary === true)
-        // Filter messages to only include those in the current context window
-        const currentContextMessages = lastSummaryIndex >= 0 ? msgs.slice(lastSummaryIndex) : msgs
-        let currentTokens = 0
-        for (const msg of currentContextMessages) {
-          if (msg.info.role === "assistant" && msg.info.tokens) {
-            const tokens = msg.info.tokens
-            currentTokens += tokens.input + tokens.output + tokens.reasoning + tokens.cache.read + tokens.cache.write
-          }
-        }
+        const currentTokens = await Session.getCurrentTokens(session.id)
         UI.println(currentTokens.toString())
         if (!message.trim()) {
           return  // Exit early if only getting token count

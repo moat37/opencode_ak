@@ -1434,4 +1434,17 @@ export namespace Session {
     })
     await App.initialize()
   }
+
+  // Added by Akshay to get the current tokens in the context window
+  export async function getCurrentTokens(sessionID: string): Promise<number> {
+    const msgs = await messages(sessionID)
+    const previous = msgs.filter((x) => x.info.role === "assistant").at(-1)?.info as MessageV2.Assistant
+    
+    if (!previous || !previous.tokens) {
+      return 0
+    }
+    
+    // Use the same calculation as auto-compaction logic
+    return previous.tokens.input + previous.tokens.cache.read + previous.tokens.cache.write + previous.tokens.output
+  }
 }

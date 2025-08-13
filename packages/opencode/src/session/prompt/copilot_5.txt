@@ -132,7 +132,7 @@ Purpose
 - Extract relevant sentences from up to 4 documents of these types. Do not read these documents directly yourself.
 
 Usage rules
-- Up to 4 files per call.
+- Up to 2 files per call.
 - Up to 5 questions per call; questions can be detailed and long.
 - Err on the side of using this tool for these document types.
 - If behavior is unexpected, retry more carefully.

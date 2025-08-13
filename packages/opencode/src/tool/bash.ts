@@ -16,7 +16,7 @@ export const BashTool = Tool.define("bash", {
       .string()
       .optional()
       .describe(
-        "User-facing description of what you are doing. Do not mention what you're using or how you are doing it. Keep it clear and concise. Use words like 'companies' (i.e. external-facing) instead of 'directories' (i.e. internal-facing). Use present continuous tense. Examples: 'Looking for automobile companies', 'Getting industries for each company'",
+        "User-facing description of what you are doing. Do not mention what you're using or how you are doing it. Use as few words as possible. Use words like 'companies' (i.e. external-facing) instead of 'directories' (i.e. internal-facing). Use present continuous tense. Examples: 'Looking for automobile companies', 'Searching for concall reports containing corporate governance related terms', 'Getting company names for ticker symbols'",
       ),
   }),
   async execute(params, ctx) {
