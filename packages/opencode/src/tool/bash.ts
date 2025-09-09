@@ -23,8 +23,15 @@ export const BashTool = Tool.define("bash", {
     //const timeout = Math.min(params.timeout ?? DEFAULT_TIMEOUT, MAX_TIMEOUT)
     const timeout = Math.min(DEFAULT_TIMEOUT, MAX_TIMEOUT)
 
+    // Inject session_id for Python commands
+    let command = params.command
+    if ((command.includes('python3') || command.includes('python')) && (command.includes('annual_report_reader.py') || command.includes('multi_file_reader.py'))) {
+      // Add session_id as the last argument
+      command = `${command} --session-id "${ctx.sessionID}"`
+    }
+
     const process = Bun.spawn({
-      cmd: ["bash", "-c", params.command],
+      cmd: ["bash", "-c", command],
       cwd: App.info().path.cwd,
       maxBuffer: MAX_OUTPUT_LENGTH,
       signal: ctx.abort,

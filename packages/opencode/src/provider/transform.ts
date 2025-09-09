@@ -65,7 +65,8 @@ export namespace ProviderTransform {
     if (modelID.includes("claude")) {
       msgs = normalizeToolCallIds(msgs)
     }
-    if (providerID === "anthropic" || modelID.includes("anthropic") || modelID.includes("claude")) {
+    if (providerID === "anthropic" || providerID === "openrouter" || 
+        modelID.includes("anthropic") || modelID.includes("claude")) {
       msgs = applyCaching(msgs, providerID)
     }
 

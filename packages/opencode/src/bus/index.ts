@@ -67,6 +67,14 @@ export namespace Bus {
     return Promise.all(pending)
   }
 
+  // Alias for publish to match server.ts expectations
+  export async function emit<Definition extends EventDefinition>(
+    def: Definition,
+    properties: z.output<Definition["properties"]>,
+  ) {
+    return publish(def, properties)
+  }
+
   export function subscribe<Definition extends EventDefinition>(
     def: Definition,
     callback: (event: { type: Definition["type"]; properties: z.infer<Definition["properties"]> }) => void,

@@ -47,6 +47,76 @@ export namespace Server {
 
   export const Event = {
     Connected: Bus.event("server.connected", z.object({})),
+    SessionEvent: Bus.event("session.event", z.object({
+      sessionId: z.string(),
+      type: z.string(),
+      data: z.any(),
+    })),
+    AgentSwitched: Bus.event("agent.switched", z.object({
+      sessionId: z.string(),
+      previousAgent: z.string(),
+      currentAgent: z.string(),
+      trigger: z.string().optional(), // 'auto_signal', 'manual', etc.
+      timestamp: z.string(),
+    })),
+    AgentStatus: Bus.event("agent.status", z.object({
+      sessionId: z.string(),
+      agent: z.string(),
+      status: z.string(), // 'planning', 'executing', 'analyzing', 'idle'
+      message: z.string().optional(),
+      timestamp: z.string(),
+    })),
+    ToolUsage: Bus.event("tool.usage", z.object({
+      sessionId: z.string(),
+      agent: z.string(),
+      tool: z.string(),
+      action: z.string(), // 'start', 'progress', 'complete', 'error'
+      description: z.string().optional(),
+      data: z.any().optional(),
+      timestamp: z.string(),
+    })),
+    MessageProgress: Bus.event("message.progress", z.object({
+      sessionId: z.string(),
+      messageId: z.string().optional(),
+      progress: z.number().optional(), // 0-100
+      status: z.string(),
+      data: z.any().optional(),
+      timestamp: z.string(),
+    })),
+  }
+
+  // Helper functions for emitting agent and tool events
+  export const emitAgentStatus = (sessionId: string, agent: string, status: string, message?: string) => {
+    Bus.emit(Event.AgentStatus, {
+      sessionId,
+      agent,
+      status,
+      message,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
+  export const emitToolUsage = (sessionId: string, agent: string, tool: string, action: string, description?: string, data?: any) => {
+    Bus.emit(Event.ToolUsage, {
+      sessionId,
+      agent,
+      tool,
+      action,
+      description,
+      data,
+      timestamp: new Date().toISOString(),
+    })
+  }
+
+  export const emitMessageProgress = (sessionId: string, messageId: string | undefined, status: string, progress?: number, data?: any) => {
+    Bus.emit(Event.MessageProgress, {
+      sessionId,
+      messageId,
+      progress,
+      status,
+      data,
+      timestamp: new Date().toISOString(),
+    })
   }
 
   export const app = lazy(() => {
@@ -131,6 +201,100 @@ export namespace Server {
                 unsub()
                 resolve()
                 log.info("event disconnected")
+              })
+            })
+          })
+        },
+      )
+      .get(
+        "/event/session/:sessionId",
+        describeRoute({
+          description: "Get events for a specific session",
+          operationId: "event.subscribeSession",
+          responses: {
+            200: {
+              description: "Session-specific event stream",
+              content: {
+                "application/json": {
+                  schema: resolver(
+                    z.object({
+                      type: z.string(),
+                      sessionId: z.string(),
+                      data: z.any(),
+                      timestamp: z.string(),
+                    }).openapi({
+                      ref: "SessionEvent",
+                    }),
+                  ),
+                },
+              },
+            },
+          },
+        }),
+        zValidator(
+          "param",
+          z.object({
+            sessionId: z.string().openapi({ description: "Session ID to subscribe to" }),
+          }),
+        ),
+        async (c) => {
+          const { sessionId } = c.req.valid("param")
+          log.info("session event connected", { sessionId })
+
+          return streamSSE(c, async (stream) => {
+            // Send initial connection confirmation
+            stream.writeSSE({
+              data: JSON.stringify({
+                type: "session.connected",
+                sessionId,
+                timestamp: new Date().toISOString(),
+                data: {}
+              }),
+            })
+
+            // Subscribe to all events and filter for this session
+            const unsub = Bus.subscribeAll(async (event) => {
+              // Filter events related to this session
+              const isSessionEvent = (
+                // Direct session events
+                event.type?.includes("session") &&
+                (event.properties?.sessionId === sessionId || event.properties?.sessionID === sessionId)
+              ) || (
+                // Message events for this session
+                event.type?.includes("message") &&
+                (event.properties?.sessionId === sessionId || event.properties?.sessionID === sessionId)
+              ) || (
+                // Chat events for this session
+                event.type?.includes("chat") &&
+                (event.properties?.sessionId === sessionId || event.properties?.sessionID === sessionId)
+              ) || (
+                // Tool events for this session
+                event.type?.includes("tool") &&
+                (event.properties?.sessionId === sessionId || event.properties?.sessionID === sessionId)
+              ) || (
+                // Agent events for this session
+                event.type?.includes("agent") &&
+                (event.properties?.sessionId === sessionId || event.properties?.sessionID === sessionId)
+              )
+
+              if (isSessionEvent) {
+                await stream.writeSSE({
+                  data: JSON.stringify({
+                    type: event.type,
+                    sessionId: sessionId,
+                    timestamp: new Date().toISOString(),
+                    data: event.properties || event
+                  }),
+                })
+              }
+            })
+
+            // Handle client disconnect
+            await new Promise<void>((resolve) => {
+              stream.onAbort(() => {
+                unsub()
+                resolve()
+                log.info("session event disconnected", { sessionId })
               })
             })
           })
@@ -892,6 +1056,569 @@ export namespace Server {
           return c.json(modes)
         },
       )
+      .get(
+        "/session/:id/agent",
+        describeRoute({
+          description: "Get current agent for a session",
+          operationId: "session.getCurrentAgent",
+          responses: {
+            200: {
+              description: "Current agent information",
+              content: {
+                "application/json": {
+                  schema: resolver(
+                    z.object({
+                      currentAgent: z.string(),
+                      availableAgents: z.array(z.string()),
+                      sessionTokens: z.number().optional(),
+                    })
+                  ),
+                },
+              },
+            },
+            404: ERRORS[400],
+          },
+        }),
+        zValidator(
+          "param",
+          z.object({
+            id: z.string().openapi({ description: "Session ID" }),
+          }),
+        ),
+        async (c) => {
+          const sessionId = c.req.valid("param").id
+          const session = await Session.get(sessionId)
+          
+          if (!session) {
+            return c.json({ error: "Session not found" }, 404)
+          }
+
+          const agents = await Agent.list()
+          const availableAgents = agents.map(agent => agent.name)
+          
+          // Get current agent from session context or default to 'probe'
+          const currentAgent = session.context?.currentAgent || 'probe'
+          
+          // Get session token count if available
+          let sessionTokens
+          try {
+            sessionTokens = session.messages.reduce((total, msg) => {
+              return total + (msg.tokens_used || 0)
+            }, 0)
+          } catch (e) {
+            sessionTokens = undefined
+          }
+
+          return c.json({
+            currentAgent,
+            availableAgents,
+            sessionTokens,
+          })
+        },
+      )
+      .get(
+        "/session/:id/tokens",
+        describeRoute({
+          description: "Get session token count",
+          operationId: "session.getTokens",
+          responses: {
+            200: {
+              description: "Session token count",
+              content: {
+                "application/json": {
+                  schema: resolver(
+                    z.object({
+                      sessionId: z.string(),
+                      totalTokens: z.number(),
+                      messageCount: z.number(),
+                    })
+                  ),
+                },
+              },
+            },
+            404: ERRORS[400],
+          },
+        }),
+        zValidator(
+          "param",
+          z.object({
+            id: z.string().openapi({ description: "Session ID" }),
+          }),
+        ),
+        async (c) => {
+          const sessionId = c.req.valid("param").id
+          const session = await Session.get(sessionId)
+          
+          if (!session) {
+            return c.json({ error: "Session not found" }, 404)
+          }
+
+          // Calculate total tokens used in session
+          let totalTokens = 0
+          let messageCount = 0
+          
+          try {
+            messageCount = session.messages?.length || 0
+            totalTokens = session.messages?.reduce((total, msg) => {
+              return total + (msg.tokens_used || 0)
+            }, 0) || 0
+          } catch (e) {
+            log.warn("Failed to calculate session tokens", { sessionId, error: e.message })
+            totalTokens = 0
+          }
+
+          return c.json({
+            sessionId,
+            totalTokens,
+            messageCount,
+          })
+        },
+      )
+      .get(
+        "/session/:id/usage",
+        describeRoute({
+          description: "Get detailed session usage data for cost tracking",
+          operationId: "session.getUsage",
+          responses: {
+            200: {
+              description: "Session usage data",
+              content: {
+                "application/json": {
+                  schema: resolver(
+                    z.object({
+                      sessionId: z.string(),
+                      totalCostUsd: z.number(),
+                      totalInputTokens: z.number(),
+                      totalOutputTokens: z.number(),
+                      totalCachedTokens: z.number(),
+                      totalRequests: z.number(),
+                      stages: z.record(z.object({
+                        cost: z.number(),
+                        inputTokens: z.number(),
+                        outputTokens: z.number(),
+                        requests: z.number(),
+                        models: z.record(z.any())
+                      })),
+                      models: z.record(z.object({
+                        cost: z.number(),
+                        tokens: z.number(),
+                        requests: z.number()
+                      })),
+                      messageCount: z.number(),
+                      lastUpdated: z.string()
+                    })
+                  ),
+                },
+              },
+            },
+            404: ERRORS[400],
+          },
+        }),
+        async (c) => {
+          const sessionId = c.req.param("id")
+          
+          try {
+            const session = await Session.get(sessionId)
+            
+            if (!session) {
+              return c.json({ error: "Session not found" }, 404)
+            }
+
+            // Initialize usage tracking data
+            let usageData = {
+              sessionId,
+              totalCostUsd: 0,
+              totalInputTokens: 0,
+              totalOutputTokens: 0,
+              totalCachedTokens: 0,
+              totalRequests: 0,
+              stages: {} as Record<string, any>,
+              models: {} as Record<string, any>,
+              messageCount: session.messages?.length || 0,
+              lastUpdated: new Date().toISOString()
+            };
+
+            // Process all messages to extract detailed usage
+            if (session.messages) {
+              for (const message of session.messages) {
+                if (message.role === 'assistant' && message.parts) {
+                  for (const part of message.parts) {
+                    // Look for step-finish parts that contain usage data
+                    if (part.type === 'step-finish' && part.tokens && part.cost) {
+                      usageData.totalCostUsd += part.cost;
+                      usageData.totalInputTokens += part.tokens.input || 0;
+                      usageData.totalOutputTokens += part.tokens.output || 0;
+                      usageData.totalCachedTokens += part.tokens.cache?.read || 0;
+                      usageData.totalRequests += 1;
+
+                      // Detect stage (probe/exec) from context
+                      const stage = detectStageFromPart(part, message);
+                      
+                      if (!usageData.stages[stage]) {
+                        usageData.stages[stage] = {
+                          cost: 0,
+                          inputTokens: 0,
+                          outputTokens: 0,
+                          requests: 0,
+                          models: {}
+                        };
+                      }
+                      
+                      usageData.stages[stage].cost += part.cost;
+                      usageData.stages[stage].inputTokens += part.tokens.input || 0;
+                      usageData.stages[stage].outputTokens += part.tokens.output || 0;
+                      usageData.stages[stage].requests += 1;
+
+                      // Track model usage (if available in metadata)
+                      const modelId = part.metadata?.model || 'unknown';
+                      
+                      if (!usageData.models[modelId]) {
+                        usageData.models[modelId] = {
+                          cost: 0,
+                          tokens: 0,
+                          requests: 0
+                        };
+                      }
+                      
+                      usageData.models[modelId].cost += part.cost;
+                      usageData.models[modelId].tokens += (part.tokens.input || 0) + (part.tokens.output || 0);
+                      usageData.models[modelId].requests += 1;
+
+                      // Also track in stage models
+                      if (!usageData.stages[stage].models[modelId]) {
+                        usageData.stages[stage].models[modelId] = {
+                          cost: 0,
+                          tokens: 0,
+                          requests: 0
+                        };
+                      }
+                      
+                      usageData.stages[stage].models[modelId].cost += part.cost;
+                      usageData.stages[stage].models[modelId].tokens += (part.tokens.input || 0) + (part.tokens.output || 0);
+                      usageData.stages[stage].models[modelId].requests += 1;
+                    }
+                  }
+                }
+              }
+            }
+
+            return c.json(usageData)
+          } catch (error) {
+            log.error("Failed to get session usage", { sessionId, error: error.message })
+            return c.json({ error: "Failed to get session usage" }, 500)
+          }
+        },
+      )
+      .post(
+        "/session/:id/notify-usage",
+        describeRoute({
+          description: "Notify backend of usage data for real-time cost tracking",
+          operationId: "session.notifyUsage",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: resolver(
+                  z.object({
+                    backendUrl: z.string(),
+                    usageData: z.object({
+                      stage: z.string(),
+                      modelName: z.string(),
+                      inputTokens: z.number(),
+                      outputTokens: z.number(),
+                      cachedTokens: z.number().optional(),
+                      cost: z.number(),
+                      duration: z.number().optional()
+                    })
+                  })
+                ),
+              },
+            },
+          },
+          responses: {
+            200: {
+              description: "Usage notification sent successfully",
+              content: {
+                "application/json": {
+                  schema: resolver(z.object({
+                    success: z.boolean(),
+                    message: z.string()
+                  })),
+                },
+              },
+            },
+            400: ERRORS[400],
+          },
+        }),
+        async (c) => {
+          const sessionId = c.req.param("id")
+          const { backendUrl, usageData } = await c.req.json()
+          
+          try {
+            // Prepare comprehensive usage data for backend
+            const backendPayload = {
+              session_id: sessionId,
+              stage: usageData.stage,
+              model_name: usageData.modelName,
+              model_provider: 'openrouter',
+              input_tokens: usageData.inputTokens,
+              output_tokens: usageData.outputTokens,
+              cached_tokens: usageData.cachedTokens || 0,
+              cost_usd: usageData.cost,
+              requests: 1,
+              duration_ms: usageData.duration || null,
+              timestamp: new Date().toISOString()
+            };
+
+            // Send to Screener37 backend
+            const response = await fetch(`${backendUrl}/api/v1/internal/usage`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Internal-Request': 'opencode-usage-tracking'
+              },
+              body: JSON.stringify(backendPayload)
+            });
+
+            if (!response.ok) {
+              throw new Error(`Backend responded with ${response.status}: ${response.statusText}`);
+            }
+
+            return c.json({
+              success: true,
+              message: "Usage data sent to backend successfully"
+            });
+
+          } catch (error) {
+            log.error("Failed to notify backend of usage", { sessionId, error: error.message })
+            return c.json({
+              success: false,
+              message: `Failed to notify backend: ${error.message}`
+            }, 500);
+          }
+        },
+      )
+      .post(
+        "/session/:id/switch-agent",
+        describeRoute({
+          description: "Switch agent for a session",
+          operationId: "session.switchAgent",
+          responses: {
+            200: {
+              description: "Agent switched successfully",
+              content: {
+                "application/json": {
+                  schema: resolver(
+                    z.object({
+                      success: z.boolean(),
+                      currentAgent: z.string(),
+                      previousAgent: z.string().optional(),
+                      message: z.string().optional(),
+                    })
+                  ),
+                },
+              },
+            },
+            404: ERRORS[400],
+          },
+        }),
+        zValidator(
+          "param",
+          z.object({
+            id: z.string().openapi({ description: "Session ID" }),
+          }),
+        ),
+        zValidator(
+          "json",
+          z.object({
+            agent: z.string().openapi({ description: "Target agent name (e.g., 'probe', 'exec')" }),
+            message: z.string().optional().openapi({ description: "Optional message to send with the switch" }),
+          }),
+        ),
+        async (c) => {
+          const sessionId = c.req.valid("param").id
+          const { agent, message } = c.req.valid("json")
+          
+          const session = await Session.get(sessionId)
+          if (!session) {
+            return c.json({ error: "Session not found" }, 404)
+          }
+
+          const previousAgent = session.context?.currentAgent || 'probe'
+          
+          // Update the session context
+          await Session.update(sessionId, (draft) => {
+            draft.context = {
+              ...draft.context,
+              currentAgent: agent,
+              agentSwitchCount: (draft.context?.agentSwitchCount || 0) + 1,
+              lastAgentSwitch: new Date().toISOString(),
+            }
+          })
+
+          // Log agent switch event
+          log.info("Agent switched", {
+            sessionId,
+            previousAgent,
+            currentAgent: agent,
+            message: message ? "with message" : "without message"
+          })
+
+          // Emit agent switch event
+          Bus.emit(Server.Event.AgentSwitched, {
+            sessionId,
+            previousAgent,
+            currentAgent: agent,
+            timestamp: new Date().toISOString(),
+          })
+
+          return c.json({
+            success: true,
+            currentAgent: agent,
+            previousAgent,
+            message: message ? "Agent switched with message" : "Agent switched successfully",
+          })
+        },
+      )
+      .post(
+        "/session/:id/message-with-agent",
+        describeRoute({
+          description: "Send message with optional agent switching",
+          operationId: "session.messageWithAgent",
+          responses: {
+            200: {
+              description: "Message sent with agent handling",
+              content: {
+                "application/json": {
+                  schema: resolver(
+                    z.object({
+                      message: z.any(),
+                      agentSwitched: z.boolean(),
+                      currentAgent: z.string(),
+                      switchSignalDetected: z.boolean().optional(),
+                    })
+                  ),
+                },
+              },
+            },
+            404: ERRORS[400],
+          },
+        }),
+        zValidator(
+          "param",
+          z.object({
+            id: z.string().openapi({ description: "Session ID" }),
+          }),
+        ),
+        zValidator(
+          "json",
+          z.object({
+            message: z.string().openapi({ description: "Message content" }),
+            agent: z.string().optional().openapi({ description: "Force specific agent" }),
+            autoSwitch: z.boolean().default(true).openapi({ description: "Enable automatic agent switching based on signals" }),
+          }),
+        ),
+        async (c) => {
+          const sessionId = c.req.valid("param").id
+          const { message, agent, autoSwitch } = c.req.valid("json")
+          
+          const session = await Session.get(sessionId)
+          if (!session) {
+            return c.json({ error: "Session not found" }, 404)
+          }
+
+          let currentAgent = session.context?.currentAgent || 'probe'
+          let agentSwitched = false
+          let switchSignalDetected = false
+
+          // Detect switch signal in message (from interface.py pattern)
+          const switchSignalRegex = /XÆM-37.*(Switch|switch).*/
+          if (autoSwitch && switchSignalRegex.test(message)) {
+            switchSignalDetected = true
+            // Switch from probe to exec when signal detected
+            if (currentAgent === 'probe') {
+              currentAgent = 'exec'
+              agentSwitched = true
+              
+              // Update session context
+              await Session.update(sessionId, (draft) => {
+                draft.context = {
+                  ...draft.context,
+                  currentAgent,
+                  agentSwitchCount: (draft.context?.agentSwitchCount || 0) + 1,
+                  lastAgentSwitch: new Date().toISOString(),
+                }
+              })
+
+              // Emit agent switch event
+              Bus.emit(Server.Event.AgentSwitched, {
+                sessionId,
+                previousAgent: 'probe',
+                currentAgent: 'exec',
+                trigger: 'auto_signal',
+                timestamp: new Date().toISOString(),
+              })
+            }
+          }
+
+          // Force agent if specified
+          if (agent && agent !== currentAgent) {
+            const previousAgent = currentAgent
+            currentAgent = agent
+            agentSwitched = true
+            
+            await Session.update(sessionId, (draft) => {
+              draft.context = {
+                ...draft.context,
+                currentAgent,
+                agentSwitchCount: (draft.context?.agentSwitchCount || 0) + 1,
+                lastAgentSwitch: new Date().toISOString(),
+              }
+            })
+
+            Bus.emit(Server.Event.AgentSwitched, {
+              sessionId,
+              previousAgent,
+              currentAgent,
+              trigger: 'manual',
+              timestamp: new Date().toISOString(),
+            })
+          }
+
+          // Emit status based on current agent
+          const agentStatusMessage = currentAgent === 'probe' ? 'Planning research approach' : 'Executing analysis'
+          emitAgentStatus(sessionId, currentAgent, currentAgent === 'probe' ? 'planning' : 'executing', agentStatusMessage)
+          emitMessageProgress(sessionId, undefined, 'processing', 10)
+
+          // Send message using the determined agent
+          const chatInput = {
+            sessionID: sessionId,
+            message,
+            agent: currentAgent,
+          }
+
+          try {
+            const response = await Session.chat(chatInput)
+            
+            // Emit completion status
+            emitAgentStatus(sessionId, currentAgent, 'completed', 'Analysis completed')
+            emitMessageProgress(sessionId, undefined, 'completed', 100)
+
+            return c.json({
+              message: response,
+              agentSwitched,
+              currentAgent,
+              switchSignalDetected,
+            })
+          } catch (error) {
+            // Emit error status
+            emitAgentStatus(sessionId, currentAgent, 'error', 'Error occurred during processing')
+            emitMessageProgress(sessionId, undefined, 'error', undefined, { error: error.message })
+            
+            throw error
+          }
+        },
+      )
       .post(
         "/tui/append-prompt",
         describeRoute({
@@ -1052,6 +1779,35 @@ export namespace Server {
 
     return result
   })
+
+  // Helper function to detect stage from message part and context
+  function detectStageFromPart(part: any, message: any): string {
+    // Check for explicit agent metadata
+    if (part.metadata?.agent === 'exec' || message.metadata?.agent === 'exec') {
+      return 'exec';
+    }
+    if (part.metadata?.agent === 'probe' || message.metadata?.agent === 'probe') {
+      return 'probe';
+    }
+
+    // Check for model patterns to infer stage
+    const modelId = part.metadata?.model || '';
+    if (modelId.includes('deepseek') || modelId.includes('kimi')) {
+      return 'exec';
+    }
+    if (modelId.includes('claude') || modelId.includes('sonnet')) {
+      return 'probe';
+    }
+
+    // Check message content patterns
+    const content = message.content || '';
+    if (content.includes('executing') || content.includes('running') || content.includes('tool')) {
+      return 'exec';
+    }
+
+    // Default to probe (most common starting stage)
+    return 'probe';
+  }
 
   export async function openapi() {
     const a = app()

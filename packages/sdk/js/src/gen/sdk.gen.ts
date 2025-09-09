@@ -4,6 +4,8 @@ import type { Options as ClientOptions, TDataShape, Client } from "./client"
 import type {
   EventSubscribeData,
   EventSubscribeResponses,
+  EventSubscribeSessionData,
+  EventSubscribeSessionResponses,
   AppGetData,
   AppGetResponses,
   AppInitData,
@@ -57,6 +59,24 @@ import type {
   AppLogResponses,
   AppAgentsData,
   AppAgentsResponses,
+  SessionGetCurrentAgentData,
+  SessionGetCurrentAgentResponses,
+  SessionGetCurrentAgentErrors,
+  SessionGetTokensData,
+  SessionGetTokensResponses,
+  SessionGetTokensErrors,
+  SessionGetUsageData,
+  SessionGetUsageResponses,
+  SessionGetUsageErrors,
+  SessionNotifyUsageData,
+  SessionNotifyUsageResponses,
+  SessionNotifyUsageErrors,
+  SessionSwitchAgentData,
+  SessionSwitchAgentResponses,
+  SessionSwitchAgentErrors,
+  SessionMessageWithAgentData,
+  SessionMessageWithAgentResponses,
+  SessionMessageWithAgentErrors,
   TuiAppendPromptData,
   TuiAppendPromptResponses,
   TuiOpenHelpData,
@@ -110,6 +130,18 @@ class Event extends _HeyApiClient {
   public subscribe<ThrowOnError extends boolean = false>(options?: Options<EventSubscribeData, ThrowOnError>) {
     return (options?.client ?? this._client).get<EventSubscribeResponses, unknown, ThrowOnError>({
       url: "/event",
+      ...options,
+    })
+  }
+
+  /**
+   * Get events for a specific session
+   */
+  public subscribeSession<ThrowOnError extends boolean = false>(
+    options: Options<EventSubscribeSessionData, ThrowOnError>,
+  ) {
+    return (options.client ?? this._client).get<EventSubscribeSessionResponses, unknown, ThrowOnError>({
+      url: "/event/session/{sessionId}",
       ...options,
     })
   }
@@ -337,6 +369,90 @@ class Session extends _HeyApiClient {
     return (options.client ?? this._client).post<SessionUnrevertResponses, unknown, ThrowOnError>({
       url: "/session/{id}/unrevert",
       ...options,
+    })
+  }
+
+  /**
+   * Get current agent for a session
+   */
+  public getCurrentAgent<ThrowOnError extends boolean = false>(
+    options: Options<SessionGetCurrentAgentData, ThrowOnError>,
+  ) {
+    return (options.client ?? this._client).get<
+      SessionGetCurrentAgentResponses,
+      SessionGetCurrentAgentErrors,
+      ThrowOnError
+    >({
+      url: "/session/{id}/agent",
+      ...options,
+    })
+  }
+
+  /**
+   * Get session token count
+   */
+  public getTokens<ThrowOnError extends boolean = false>(options: Options<SessionGetTokensData, ThrowOnError>) {
+    return (options.client ?? this._client).get<SessionGetTokensResponses, SessionGetTokensErrors, ThrowOnError>({
+      url: "/session/{id}/tokens",
+      ...options,
+    })
+  }
+
+  /**
+   * Get detailed session usage data for cost tracking
+   */
+  public getUsage<ThrowOnError extends boolean = false>(options: Options<SessionGetUsageData, ThrowOnError>) {
+    return (options.client ?? this._client).get<SessionGetUsageResponses, SessionGetUsageErrors, ThrowOnError>({
+      url: "/session/{id}/usage",
+      ...options,
+    })
+  }
+
+  /**
+   * Notify backend of usage data for real-time cost tracking
+   */
+  public notifyUsage<ThrowOnError extends boolean = false>(options: Options<SessionNotifyUsageData, ThrowOnError>) {
+    return (options.client ?? this._client).post<SessionNotifyUsageResponses, SessionNotifyUsageErrors, ThrowOnError>({
+      url: "/session/{id}/notify-usage",
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    })
+  }
+
+  /**
+   * Switch agent for a session
+   */
+  public switchAgent<ThrowOnError extends boolean = false>(options: Options<SessionSwitchAgentData, ThrowOnError>) {
+    return (options.client ?? this._client).post<SessionSwitchAgentResponses, SessionSwitchAgentErrors, ThrowOnError>({
+      url: "/session/{id}/switch-agent",
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    })
+  }
+
+  /**
+   * Send message with optional agent switching
+   */
+  public messageWithAgent<ThrowOnError extends boolean = false>(
+    options: Options<SessionMessageWithAgentData, ThrowOnError>,
+  ) {
+    return (options.client ?? this._client).post<
+      SessionMessageWithAgentResponses,
+      SessionMessageWithAgentErrors,
+      ThrowOnError
+    >({
+      url: "/session/{id}/message-with-agent",
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
     })
   }
 }

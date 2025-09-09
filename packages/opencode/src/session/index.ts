@@ -19,6 +19,7 @@ import PROMPT_INITIALIZE from "../session/prompt/initialize.txt"
 import PROMPT_PLAN from "../session/prompt/plan.txt"
 
 import { App } from "../app/app"
+import { Auth } from "../auth"
 import { Bus } from "../bus"
 import { Config } from "../config/config"
 import { Flag } from "../flag/flag"
@@ -42,6 +43,7 @@ import { mergeDeep, pipe, splitWhen } from "remeda"
 import { ToolRegistry } from "../tool/registry"
 import { Plugin } from "../plugin"
 import { Agent } from "../agent/agent"
+import { Server } from "../server/server"
 
 export namespace Session {
   const log = Log.create({ service: "session" })
@@ -50,6 +52,62 @@ export namespace Session {
 
   const parentSessionTitlePrefix = "New session - "
   const childSessionTitlePrefix = "Child session - "
+  
+  // Cache for OpenRouter generation IDs (session -> generation_id)
+  const generationIdCache = new Map<string, string>()
+
+// Store generation ID in database ledger for tracking and verification
+async function storeGenerationIdInLedger(
+  generationId: string, 
+  sessionID: string, 
+  stage: string, 
+  modelName: string, 
+  modelProvider: string,
+  finishReason?: string
+) {
+  try {
+    const backendUrl = process.env.SCREENER37_BACKEND_URL || 'http://localhost:8000';
+    
+    const response = await fetch(`${backendUrl}/api/v1/internal/generation-ledger`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Internal-Request': 'opencode-generation-ledger'
+      },
+      body: JSON.stringify({
+        generation_id: generationId,
+        opencode_session_id: sessionID,
+        stage: stage,
+        model_name: modelName,
+        model_provider: modelProvider,
+        finish_reason: finishReason
+      }),
+      signal: AbortSignal.timeout(5000)
+    });
+    
+    if (response.ok) {
+      log.debug("Generation ID stored in ledger", { generationId, sessionID, stage });
+    } else {
+      log.warn("Failed to store generation ID in ledger", { 
+        generationId, 
+        sessionID, 
+        status: response.status,
+        statusText: response.statusText 
+      });
+    }
+  } catch (error) {
+    log.error("Error storing generation ID in ledger", { 
+      generationId, 
+      sessionID, 
+      error: error.message 
+    });
+  }
+}
+  
+  // Simple cost tracking logger
+  function logCostStep(step: string, sessionID: string, data: any) {
+    log.info(`💰 COST-STEP: ${step}`, { sessionID, ...data });
+  }
 
   function createDefaultTitle(isChild = false) {
     return (isChild ? childSessionTitlePrefix : parentSessionTitlePrefix) + new Date().toISOString()
@@ -80,6 +138,14 @@ export namespace Session {
           partID: z.string().optional(),
           snapshot: z.string().optional(),
           diff: z.string().optional(),
+        })
+        .optional(),
+      context: z
+        .object({
+          currentAgent: z.string().optional(),
+          agentSwitchCount: z.number().optional(),
+          lastAgentSwitch: z.string().optional(),
+          sessionTokens: z.number().optional(),
         })
         .optional(),
     })
@@ -122,6 +188,44 @@ export namespace Session {
       z.object({
         sessionID: z.string().optional(),
         error: MessageV2.Assistant.shape.error,
+      }),
+    ),
+    MessageTextStart: Bus.event(
+      "message.text.start",
+      z.object({
+        sessionId: z.string(),
+        messageId: z.string(),
+        partId: z.string(),
+        timestamp: z.string(),
+      }),
+    ),
+    MessageTextDelta: Bus.event(
+      "message.text.delta",
+      z.object({
+        sessionId: z.string(),
+        messageId: z.string(),
+        partId: z.string(),
+        content: z.string(),
+        fullText: z.string(),
+        timestamp: z.string(),
+      }),
+    ),
+    MessageTextEnd: Bus.event(
+      "message.text.end",
+      z.object({
+        sessionId: z.string(),
+        messageId: z.string(),
+        partId: z.string(),
+        finalText: z.string(),
+        timestamp: z.string(),
+      }),
+    ),
+    MessageFinished: Bus.event(
+      "message.finished",
+      z.object({
+        sessionId: z.string(),
+        messageId: z.string(),
+        timestamp: z.string(),
       }),
     ),
   }
@@ -168,6 +272,11 @@ export namespace Session {
       time: {
         created: Date.now(),
         updated: Date.now(),
+      },
+      context: {
+        currentAgent: 'probe', // Default to probe agent
+        agentSwitchCount: 0,
+        sessionTokens: 0,
       },
     }
     log.info("created", result)
@@ -704,13 +813,57 @@ export namespace Session {
         ],
         model: small.language,
       })
-        .then((result) => {
-          if (result.text)
+        .then(async (result) => {
+          if (result.text) {
+            // Extract OpenRouter completion ID for title generation (same as main chat)
+            const isOpenRouter = input.providerID?.toLowerCase() === 'openrouter' || 
+                               input.modelID?.includes('openrouter');
+            
+            if (isOpenRouter && result.response?.id) {
+              logCostStep("TITLE-COMPLETION-ID", input.sessionID, { 
+                completionId: result.response.id,
+                stage: "title_generation"
+              });
+              
+              // Store generation_id in cache for title generation cost tracking
+              generationIdCache.set(input.sessionID + "_title", result.response.id);
+              
+              // Store in database ledger for tracking and verification
+              storeGenerationIdInLedger(
+                result.response.id,
+                input.sessionID,
+                "title",
+                input.modelID || small.info.id || "unknown",
+                "openrouter",
+                "stop"
+              ).catch(e => log.warn("Failed to store title generation ID in ledger", e));
+            }
+            
+            // Track title generation cost
+            try {
+              const titleUsage = await getUsage(small.info, result.usage, result.experimental_providerMetadata, input.sessionID + "_title")
+              log.info("Title generation cost tracked", { 
+                sessionID: input.sessionID, 
+                cost: titleUsage.cost, 
+                tokens: titleUsage.tokens,
+                model: small.info.id,
+                // Check if we got actual cost from OpenRouter or used calculated
+                actualCost: (titleUsage.cost > 0 && generationIdCache.has(input.sessionID + "_title")) ? "OpenRouter API" : "calculated"
+              })
+              
+              // Send title generation usage to backend using the correct function
+              await notifyBackendUsage(input.sessionID, titleUsage.tokens, titleUsage.cost, small.info, "title_generation")
+              
+            } catch (error) {
+              log.warn("Failed to track title generation cost", { error: error.message || error, sessionID: input.sessionID })
+            }
+            
             return Session.update(input.sessionID, (draft) => {
               const cleaned = result.text.replace(/<think>[\s\S]*?<\/think>\s*/g, "")
               const title = cleaned.length > 100 ? cleaned.substring(0, 97) + "..." : cleaned
               draft.title = title.trim()
             })
+          }
         })
         .catch(() => { })
     }
@@ -863,11 +1016,87 @@ export namespace Session {
       },
       params,
     )
+
+    // Pre-flight balance check
+    const hasBalance = await checkUserBalance(input.sessionID, 0.10); // Estimate $0.10 for pre-flight check
+    if (!hasBalance) {
+      throw new NamedError("InsufficientBalance", "Insufficient wallet balance to continue. Please add funds to your account.");
+    }
+
     const stream = streamText({
       onError(e) {
         log.error("streamText error", {
           error: e,
         })
+      },
+      onFinish(result) {
+        // Extract OpenRouter completion ID from response and inject into metadata
+        const isOpenRouter = input.providerID?.toLowerCase() === 'openrouter' || 
+                           input.modelID?.includes('openrouter');
+        
+        // COMPREHENSIVE DEBUGGING for generation ID cache failures
+        log.info("=== GENERATION ID CACHE DEBUG ===", {
+          sessionID: input.sessionID,
+          providerID: input.providerID,
+          modelID: input.modelID,
+          isOpenRouter: isOpenRouter,
+          hasResponse: !!result.response,
+          hasResponseId: !!result.response?.id,
+          responseId: result.response?.id,
+          finishReason: result.finishReason,
+          responseKeys: result.response ? Object.keys(result.response) : 'no_response'
+        });
+        
+        if (isOpenRouter && result.response?.id) {
+          logCostStep("PROBE-COMPLETION-ID", input.sessionID, { 
+            completionId: result.response.id, 
+            stage: "probe"
+          });
+          
+          // Store generation_id in cache for getUsage function
+          generationIdCache.set(input.sessionID, result.response.id);
+          
+          // Store in database ledger for tracking and verification
+          storeGenerationIdInLedger(
+            result.response.id,
+            input.sessionID,
+            "probe",
+            input.modelID || "unknown",
+            "openrouter",
+            result.finishReason
+          ).catch(e => log.warn("Failed to store probe generation ID in ledger", e));
+          
+          log.info("✅ GENERATION ID CACHED", {
+            sessionID: input.sessionID,
+            generationId: result.response.id,
+            cacheSize: generationIdCache.size
+          });
+          
+          // Also inject into metadata (though this might not be passed through)
+          if (!result.experimental_providerMetadata) {
+            result.experimental_providerMetadata = {};
+          }
+          if (!result.experimental_providerMetadata.openrouter) {
+            result.experimental_providerMetadata.openrouter = {};
+          }
+          result.experimental_providerMetadata.openrouter.generation_id = result.response.id;
+        } else {
+          log.warn("❌ GENERATION ID NOT CACHED", {
+            sessionID: input.sessionID,
+            reason: !isOpenRouter ? "not_openrouter" : !result.response?.id ? "no_response_id" : "unknown",
+            isOpenRouter: isOpenRouter,
+            hasResponseId: !!result.response?.id
+          });
+        }
+        
+        log.info("=== STREAMTEXT FINISH DEBUG ===", {
+          sessionID: input.sessionID,
+          usage: JSON.stringify(result.usage),
+          response: JSON.stringify(result.response, null, 2),
+          experimental_providerMetadata: JSON.stringify(result.experimental_providerMetadata, null, 2),
+          finishReason: result.finishReason,
+          text: result.text?.substring(0, 100) + "..."
+        });
       },
       async prepareStep({ messages }) {
         const queue = (state().queued.get(input.sessionID) ?? []).filter((x) => !x.processed)
@@ -1030,6 +1259,17 @@ export namespace Session {
                     },
                   })
                   toolcalls[value.toolCallId] = part as MessageV2.ToolPart
+                  
+                  // Emit tool start event for session event streaming (non-blocking)
+                  Bus.publish(Server.Event.ToolUsage, {
+                    sessionId: assistantMsg.sessionID,
+                    agent: assistantMsg.agent || 'unknown',
+                    tool: value.toolName,
+                    action: 'start',
+                    description: value.input?.description || `Running ${value.toolName}`,
+                    data: value.input,
+                    timestamp: new Date().toISOString(),
+                  }).catch(e => log.warn('Bus publish failed', e))
                 }
                 break
               }
@@ -1050,6 +1290,22 @@ export namespace Session {
                       },
                     },
                   })
+                  
+                  // Emit tool completion event for session event streaming (non-blocking)
+                  Bus.publish(Server.Event.ToolUsage, {
+                    sessionId: assistantMsg.sessionID,
+                    agent: assistantMsg.agent || 'unknown',
+                    tool: match.tool,
+                    action: 'complete',
+                    description: value.output.metadata?.description || `Completed ${match.tool}`,
+                    data: {
+                      output: value.output.output,
+                      title: value.output.title,
+                      metadata: value.output.metadata,
+                    },
+                    timestamp: new Date().toISOString(),
+                  }).catch(e => log.warn('Bus publish failed', e))
+                  
                   delete toolcalls[value.toolCallId]
                 }
                 break
@@ -1070,6 +1326,21 @@ export namespace Session {
                       },
                     },
                   })
+                  
+                  // Emit tool error event for session event streaming (non-blocking)
+                  Bus.publish(Server.Event.ToolUsage, {
+                    sessionId: assistantMsg.sessionID,
+                    agent: assistantMsg.agent || 'unknown',
+                    tool: match.tool,
+                    action: 'error',
+                    description: `Error in ${match.tool}: ${(value.error as any).toString()}`,
+                    data: {
+                      error: (value.error as any).toString(),
+                      input: value.input,
+                    },
+                    timestamp: new Date().toISOString(),
+                  }).catch(e => log.warn('Bus publish failed', e))
+                  
                   delete toolcalls[value.toolCallId]
                 }
                 break
@@ -1089,7 +1360,54 @@ export namespace Session {
                 break
 
               case "finish-step":
-                const usage = getUsage(model, value.usage, value.providerMetadata)
+                // CRITICAL FIX: For tool_calls, cache generation ID since onFinish doesn't fire
+                const isOpenRouter = assistantMsg.providerID?.toLowerCase() === 'openrouter' || 
+                                   assistantMsg.modelID?.includes('openrouter');
+                log.error("ADITYA DEBUG 0");
+                if (isOpenRouter) {
+		  log.error("ADITYA DEBUG 1");
+                  
+                  // Debug: Print all available objects and their structures
+                  log.error("ADITYA DEBUG - value object keys:", Object.keys(value));
+                  log.error("ADITYA DEBUG - value.experimental_providerMetadata:", JSON.stringify(value.experimental_providerMetadata));
+                  log.error("ADITYA DEBUG - value.providerMetadata:", JSON.stringify(value.providerMetadata));
+                  log.error("ADITYA DEBUG - value.response:", JSON.stringify(value.response));
+                  
+                  const streamResult = (stream as any)._result || (stream as any).result;
+                  log.error("ADITYA DEBUG - streamResult:", JSON.stringify(streamResult));
+                  log.error("ADITYA DEBUG - stream keys:", Object.keys(stream));
+                  
+                  // Try multiple ways to extract generation ID
+                  const metadata = value.experimental_providerMetadata || value.providerMetadata;
+                  const generationId = metadata?.openai?.id || metadata?.openrouter?.generation_id || 
+                                     value.response?.id || streamResult?.response?.id;
+                  
+                  log.error("ADITYA DEBUG - extracted generationId:", generationId);
+                  
+                  if (generationId && !generationIdCache.has(assistantMsg.sessionID)) {
+		    log.error("ADITYA DEBUG 2");
+                    generationIdCache.set(assistantMsg.sessionID, generationId);
+                    
+                    storeGenerationIdInLedger(
+                      generationId,
+                      assistantMsg.sessionID,
+                      "exec",
+                      assistantMsg.modelID || "unknown", 
+                      "openrouter",
+                      "tool_calls"
+                    ).catch(e => log.warn("Failed to store tool_calls generation ID in ledger", e));
+                    
+                    log.info("🔧 TOOL_CALLS GENERATION ID CACHED in finish-step", {
+                      sessionID: assistantMsg.sessionID,
+                      generationId: generationId,
+                      finishReason: "tool_calls"
+                    });
+                  }
+                }
+                
+                // Use experimental_providerMetadata if available (contains OpenRouter generation_id)
+                const metadata = value.experimental_providerMetadata || value.providerMetadata;
+                const usage = await getUsage(model, value.usage, metadata, assistantMsg.sessionID)
                 assistantMsg.cost += usage.cost
                 assistantMsg.tokens = usage.tokens
                 await updatePart({
@@ -1128,12 +1446,28 @@ export namespace Session {
                     start: Date.now(),
                   },
                 }
+                // Publish text start event for SSE streaming (non-blocking)
+                Bus.publish(Event.MessageTextStart, {
+                  sessionId: assistantMsg.sessionID,
+                  messageId: assistantMsg.id,
+                  partId: currentText.id,
+                  timestamp: new Date().toISOString()
+                }).catch(e => log.warn('Bus publish failed', e))
                 break
 
               case "text-delta":
                 if (currentText) {
                   currentText.text += value.text
                   if (currentText.text) await updatePart(currentText)
+                  // Publish text delta event for SSE streaming (non-blocking)
+                  Bus.publish(Event.MessageTextDelta, {
+                    sessionId: assistantMsg.sessionID,
+                    messageId: assistantMsg.id,
+                    partId: currentText.id,
+                    content: value.text,
+                    fullText: currentText.text,
+                    timestamp: new Date().toISOString()
+                  }).catch(e => log.warn('Bus publish failed', e))
                 }
                 break
 
@@ -1145,6 +1479,14 @@ export namespace Session {
                     end: Date.now(),
                   }
                   await updatePart(currentText)
+                  // Publish text end event for SSE streaming (non-blocking)
+                  Bus.publish(Event.MessageTextEnd, {
+                    sessionId: assistantMsg.sessionID,
+                    messageId: assistantMsg.id,
+                    partId: currentText.id,
+                    finalText: currentText.text,
+                    timestamp: new Date().toISOString()
+                  }).catch(e => log.warn('Bus publish failed', e))
                 }
                 currentText = undefined
                 break
@@ -1152,6 +1494,12 @@ export namespace Session {
               case "finish":
                 assistantMsg.time.completed = Date.now()
                 await updateMessage(assistantMsg)
+                // Publish message finish event for SSE streaming (non-blocking)
+                Bus.publish(Event.MessageFinished, {
+                  sessionId: assistantMsg.sessionID,
+                  messageId: assistantMsg.id,
+                  timestamp: new Date().toISOString()
+                }).catch(e => log.warn('Bus publish failed', e))
                 break
 
               default:
@@ -1327,6 +1675,75 @@ export namespace Session {
       maxRetries: 10,
       abortSignal: abort.signal,
       model: model.language,
+      onFinish(result) {
+        // Extract OpenRouter completion ID from response and inject into metadata
+        const isOpenRouter = input.providerID?.toLowerCase() === 'openrouter' || 
+                           input.modelID?.includes('openrouter');
+        
+        // COMPREHENSIVE DEBUGGING for generation ID cache failures
+        log.info("=== PROCESSOR GENERATION ID CACHE DEBUG ===", {
+          sessionID: next.sessionID,
+          providerID: input.providerID,
+          modelID: input.modelID,
+          isOpenRouter: isOpenRouter,
+          hasResponse: !!result.response,
+          hasResponseId: !!result.response?.id,
+          responseId: result.response?.id,
+          finishReason: result.finishReason,
+          responseKeys: result.response ? Object.keys(result.response) : 'no_response'
+        });
+        
+        if (isOpenRouter && result.response?.id) {
+          log.info("FOUND OPENROUTER COMPLETION ID IN PROCESSOR RESPONSE", { 
+            completionId: result.response.id, 
+            sessionID: next.sessionID 
+          });
+          
+          // Store generation_id in cache for getUsage function  
+          generationIdCache.set(next.sessionID, result.response.id);
+          
+          // Store in database ledger for tracking and verification
+          storeGenerationIdInLedger(
+            result.response.id,
+            next.sessionID,
+            "exec",
+            input.modelID || "unknown", 
+            "openrouter",
+            result.finishReason
+          ).catch(e => log.warn("Failed to store exec generation ID in ledger", e));
+          
+          log.info("✅ PROCESSOR GENERATION ID CACHED", {
+            sessionID: next.sessionID,
+            generationId: result.response.id,
+            cacheSize: generationIdCache.size
+          });
+          
+          // Also inject into metadata (though this might not be passed through)
+          if (!result.experimental_providerMetadata) {
+            result.experimental_providerMetadata = {};
+          }
+          if (!result.experimental_providerMetadata.openrouter) {
+            result.experimental_providerMetadata.openrouter = {};
+          }
+          result.experimental_providerMetadata.openrouter.generation_id = result.response.id;
+        } else {
+          log.warn("❌ PROCESSOR GENERATION ID NOT CACHED", {
+            sessionID: next.sessionID,
+            reason: !isOpenRouter ? "not_openrouter" : !result.response?.id ? "no_response_id" : "unknown",
+            isOpenRouter: isOpenRouter,
+            hasResponseId: !!result.response?.id
+          });
+        }
+        
+        log.info("=== PROCESSOR STREAMTEXT FINISH DEBUG ===", {
+          sessionID: next.sessionID,
+          usage: JSON.stringify(result.usage),
+          response: JSON.stringify(result.response, null, 2),
+          experimental_providerMetadata: JSON.stringify(result.experimental_providerMetadata, null, 2),
+          finishReason: result.finishReason,
+          text: result.text?.substring(0, 100) + "..."
+        });
+      },
       messages: [
         ...system.map(
           (x): ModelMessage => ({
@@ -1382,7 +1799,37 @@ export namespace Session {
     }
   }
 
-  function getUsage(model: ModelsDev.Model, usage: LanguageModelUsage, metadata?: ProviderMetadata) {
+  async function getUsage(model: ModelsDev.Model, usage: LanguageModelUsage, metadata?: ProviderMetadata, sessionID?: string) {
+    // LOG EVERYTHING for debugging OpenRouter costs
+    log.info("=== FULL API CALL DEBUG ===", {
+      sessionID,
+      model: {
+        id: model.id,
+        provider: model.provider,
+        cost: model.cost
+      },
+      usage: JSON.stringify(usage),
+      metadata: JSON.stringify(metadata, null, 2),
+      isOpenRouter: model.provider?.toLowerCase() === 'openrouter' || metadata?.["openrouter"] || model.id?.includes('openrouter')
+    });
+    
+    // Additional debug logging for cache tokens
+    const isOpenRouter = model.provider?.toLowerCase() === 'openrouter' || 
+                        metadata?.["openrouter"] || 
+                        model.id?.includes('openrouter') ||
+                        // For title generation, check if we have cached generation_id (indicates OpenRouter)
+                        (sessionID && generationIdCache.has(sessionID));
+    
+    if (isOpenRouter) {
+      log.info("=== OPENROUTER CACHE DEBUG ===", {
+        sessionID,
+        usageFields: Object.keys(usage || {}),
+        metadataOpenRouter: metadata?.["openrouter"],
+        cachedInputTokens: usage.cachedInputTokens,
+        cacheCreationInputTokens: usage.cacheCreationInputTokens,
+        allUsageFields: JSON.stringify(usage, null, 2)
+      });
+    }
     const tokens = {
       input: usage.inputTokens ?? 0,
       output: usage.outputTokens ?? 0,
@@ -1391,18 +1838,235 @@ export namespace Session {
         write: (metadata?.["anthropic"]?.["cacheCreationInputTokens"] ??
           // @ts-expect-error
           metadata?.["bedrock"]?.["usage"]?.["cacheWriteInputTokens"] ??
+          // OpenRouter cache write tokens
+          metadata?.["openrouter"]?.["cache_creation_input_tokens"] ??
+          metadata?.["openrouter"]?.["cacheCreationInputTokens"] ??
+          // Also check usage object for cache write tokens
+          usage.cacheCreationInputTokens ??
           0) as number,
-        read: usage.cachedInputTokens ?? 0,
+        read: usage.cachedInputTokens ?? 
+              metadata?.["openrouter"]?.["cached_input_tokens"] ??
+              metadata?.["openrouter"]?.["cachedInputTokens"] ??
+              0,
       },
     }
-    return {
-      cost: new Decimal(0)
+
+    let cost = 0;
+    
+    // Use the isOpenRouter variable already declared above for cache debug
+    if (isOpenRouter) {
+      try {
+        // ALWAYS check cache first since metadata is unreliable, then fallback to metadata
+        let generationId = null;
+        if (sessionID) {
+          generationId = generationIdCache.get(sessionID) || generationIdCache.get(sessionID + "_title");
+          if (generationId) {
+            log.info("Found generation_id in cache", { generationId, sessionID, source: "cache_first" });
+          }
+        }
+        
+        // If still not found, try metadata as fallback
+        if (!generationId) {
+          generationId = metadata?.["openrouter"]?.["generation_id"] || 
+                        metadata?.["x-ratelimit"]?.["generation_id"] ||
+                        metadata?.["generation_id"];
+          if (generationId) {
+            log.info("Found generation_id in metadata", { generationId, sessionID, source: "metadata_fallback" });
+          }
+        }
+        
+        if (generationId) {
+          log.info("Fetching OpenRouter cost for generation", { generationId, sessionID });
+          
+          // Get OpenRouter API key from Auth system (set via `opencode auth`)
+          const openrouterAuth = await Auth.get("openrouter");
+          const openrouterKey = openrouterAuth?.type === "api" ? openrouterAuth.key : null;
+          if (openrouterKey) {
+            // Retry logic: OpenRouter needs time to process the generation data
+            let attempts = 0;
+            const maxAttempts = 3;
+            const delays = [1000, 2000, 3000]; // 1s, 2s, 3s delays
+            
+            while (attempts < maxAttempts) {
+              // Add delay before API call (except first attempt)
+              if (attempts > 0) {
+                log.info(`Waiting ${delays[attempts-1]}ms before retry ${attempts}`, { generationId, sessionID });
+                await new Promise(resolve => setTimeout(resolve, delays[attempts-1]));
+              }
+              
+              const response = await fetch(`https://openrouter.ai/api/v1/generation?id=${generationId}`, {
+                headers: {
+                  'Authorization': `Bearer ${openrouterKey}`,
+                  'Content-Type': 'application/json'
+                },
+                signal: AbortSignal.timeout(10000) // 10 second timeout
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                log.info("Full OpenRouter generation API response", { generationId, data: JSON.stringify(data), sessionID, attempt: attempts + 1 });
+                
+                if (data.data && typeof data.data.total_cost === 'number') {
+                  cost = data.data.total_cost;
+                  logCostStep("OPENROUTER-API-SUCCESS", sessionID, { 
+                    generationId, 
+                    cost: cost,
+                    cacheDiscount: data.data.cache_discount,
+                    attempt: attempts + 1
+                  });
+                  
+                  // Clean up cache entry after successful use
+                  if (sessionID) {
+                    generationIdCache.delete(sessionID);
+                  }
+                  break; // Success, exit retry loop
+                }
+              } else if (response.status === 404 && attempts < maxAttempts - 1) {
+                log.info(`OpenRouter generation not ready yet (404), will retry`, { generationId, attempt: attempts + 1, sessionID });
+              } else {
+                log.warn("OpenRouter API error", { generationId, status: response.status, attempt: attempts + 1, sessionID });
+                if (attempts === maxAttempts - 1) {
+                  log.error("OpenRouter API failed after all retries", { generationId, sessionID });
+                }
+              }
+              
+              attempts++;
+            }
+          } else {
+            log.debug("OpenRouter API key not found in auth system");
+          }
+        } else {
+          log.info("METADATA DEBUG - Full metadata object:", { 
+            metadata: JSON.stringify(metadata, null, 2), 
+            sessionID,
+            metadataKeys: metadata ? Object.keys(metadata) : 'null'
+          });
+        }
+      } catch (error) {
+        log.error("Error fetching OpenRouter cost", { error: error.message, sessionID });
+      }
+    }
+    
+    // Fallback to model.dev costs if OpenRouter fetch failed or not OpenRouter
+    if (cost === 0) {
+      cost = new Decimal(0)
         .add(new Decimal(tokens.input).mul(model.cost?.input ?? 0).div(1_000_000))
         .add(new Decimal(tokens.output).mul(model.cost?.output ?? 0).div(1_000_000))
         .add(new Decimal(tokens.cache.read).mul(model.cost?.cache_read ?? 0).div(1_000_000))
         .add(new Decimal(tokens.cache.write).mul(model.cost?.cache_write ?? 0).div(1_000_000))
-        .toNumber(),
-      tokens,
+        .toNumber();
+        
+      if (!isOpenRouter) {
+        log.debug("Using model.dev costs", { cost, sessionID, provider: model.provider });
+      } else {
+        log.warn("Using fallback model.dev costs for OpenRouter", { cost, sessionID });
+      }
+    }
+    
+    // Send usage to backend for real-time cost tracking
+    if (sessionID && cost > 0) {
+      const stage = sessionID.includes("_title") ? "title_generation" : 
+                   model.id?.toLowerCase().includes('kimi') ? "exec" : "probe";
+      
+      logCostStep("WALLET-DEDUCTION", sessionID, { 
+        stage: stage,
+        model: model.id,
+        cost: cost,
+        tokens: tokens
+      });
+      
+      await notifyBackendUsage(sessionID, tokens, cost, model).catch(error => {
+        log.warn("Failed to notify backend of usage", { sessionID, error: error.message });
+      });
+    }
+    
+    return { cost, tokens };
+  }
+
+  async function checkUserBalance(sessionID: string, estimatedCost: number = 0.10): Promise<boolean> {
+    try {
+      const backendUrl = process.env.SCREENER37_BACKEND_URL || 'http://localhost:8000';
+      
+      const response = await fetch(`${backendUrl}/api/v1/internal/balance-check`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Request': 'opencode-balance-check'
+        },
+        body: JSON.stringify({
+          session_id: sessionID,
+          estimated_cost: estimatedCost
+        }),
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (!data.hasBalance) {
+          log.warn("Insufficient user balance", { sessionID, estimatedCost, userBalance: data.currentBalance });
+          return false;
+        }
+        log.debug("User balance check passed", { sessionID, estimatedCost, userBalance: data.currentBalance });
+        return true;
+      } else {
+        log.warn("Balance check failed", { sessionID, status: response.status });
+        // Default to allow if balance check fails (fail-open)
+        return true;
+      }
+    } catch (error) {
+      log.error("Balance check error", { sessionID, error: error.message });
+      // Default to allow if balance check fails (fail-open)
+      return true;
+    }
+  }
+
+  async function notifyBackendUsage(sessionID: string, tokens: any, cost: number, model: ModelsDev.Model, stage?: string) {
+    try {
+      const backendUrl = process.env.SCREENER37_BACKEND_URL || 'http://localhost:8000';
+      
+      // Determine stage - use passed parameter or determine based on model
+      let finalStage = stage;
+      if (!finalStage) {
+        finalStage = 'probe'; // default
+        const modelId = model.id?.toLowerCase() || '';
+        if (modelId.includes('kimi') || modelId.includes('moonshot') || modelId.includes('deepseek')) {
+          finalStage = 'exec';
+        }
+      }
+      
+      const usagePayload = {
+        session_id: sessionID,
+        stage: finalStage,
+        model_name: model.id || 'unknown',
+        model_provider: model.provider || 'openrouter',
+        input_tokens: tokens.input,
+        output_tokens: tokens.output,
+        cached_tokens: tokens.cache.read + tokens.cache.write,
+        cache_read_tokens: tokens.cache.read,
+        cache_write_tokens: tokens.cache.write,
+        cost_usd: cost,
+        requests: 1,
+        duration_ms: null,
+        timestamp: new Date().toISOString()
+      };
+      
+      const response = await fetch(`${backendUrl}/api/v1/internal/usage`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-Request': 'opencode-usage-tracking'
+        },
+        body: JSON.stringify(usagePayload),
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      
+      if (response.ok) {
+        log.info("Sent usage data to backend", { sessionID, cost, stage, model: model.id });
+      } else {
+        log.warn("Backend usage tracking failed", { sessionID, status: response.status });
+      }
+    } catch (error) {
+      log.error("Failed to notify backend of usage", { sessionID, error: error.message });
     }
   }
 

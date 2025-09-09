@@ -26,14 +26,29 @@ export type Event =
       type: "file.edited"
     } & EventFileEdited)
   | ({
-      type: "server.connected"
-    } & EventServerConnected)
-  | ({
       type: "permission.updated"
     } & EventPermissionUpdated)
   | ({
       type: "permission.replied"
     } & EventPermissionReplied)
+  | ({
+      type: "server.connected"
+    } & EventServerConnected)
+  | ({
+      type: "session.event"
+    } & EventSessionEvent)
+  | ({
+      type: "agent.switched"
+    } & EventAgentSwitched)
+  | ({
+      type: "agent.status"
+    } & EventAgentStatus)
+  | ({
+      type: "tool.usage"
+    } & EventToolUsage)
+  | ({
+      type: "message.progress"
+    } & EventMessageProgress)
   | ({
       type: "session.updated"
     } & EventSessionUpdated)
@@ -46,6 +61,18 @@ export type Event =
   | ({
       type: "session.error"
     } & EventSessionError)
+  | ({
+      type: "message.text.start"
+    } & EventMessageTextStart)
+  | ({
+      type: "message.text.delta"
+    } & EventMessageTextDelta)
+  | ({
+      type: "message.text.end"
+    } & EventMessageTextEnd)
+  | ({
+      type: "message.finished"
+    } & EventMessageFinished)
   | ({
       type: "file.watcher.updated"
     } & EventFileWatcherUpdated)
@@ -414,13 +441,6 @@ export type EventFileEdited = {
   }
 }
 
-export type EventServerConnected = {
-  type: string
-  properties: {
-    [key: string]: unknown
-  }
-}
-
 export type EventPermissionUpdated = {
   type: string
   properties: Permission
@@ -451,6 +471,69 @@ export type EventPermissionReplied = {
   }
 }
 
+export type EventServerConnected = {
+  type: string
+  properties: {
+    [key: string]: unknown
+  }
+}
+
+export type EventSessionEvent = {
+  type: string
+  properties: {
+    sessionId: string
+    type: string
+    data?: unknown
+  }
+}
+
+export type EventAgentSwitched = {
+  type: string
+  properties: {
+    sessionId: string
+    previousAgent: string
+    currentAgent: string
+    trigger?: string
+    timestamp: string
+  }
+}
+
+export type EventAgentStatus = {
+  type: string
+  properties: {
+    sessionId: string
+    agent: string
+    status: string
+    message?: string
+    timestamp: string
+  }
+}
+
+export type EventToolUsage = {
+  type: string
+  properties: {
+    sessionId: string
+    agent: string
+    tool: string
+    action: string
+    description?: string
+    data?: unknown
+    timestamp: string
+  }
+}
+
+export type EventMessageProgress = {
+  type: string
+  properties: {
+    sessionId: string
+    messageId?: string
+    progress?: number
+    status: string
+    data?: unknown
+    timestamp: string
+  }
+}
+
 export type EventSessionUpdated = {
   type: string
   properties: {
@@ -475,6 +558,12 @@ export type Session = {
     partID?: string
     snapshot?: string
     diff?: string
+  }
+  context?: {
+    currentAgent?: string
+    agentSwitchCount?: number
+    lastAgentSwitch?: string
+    sessionTokens?: number
   }
 }
 
@@ -512,6 +601,48 @@ export type EventSessionError = {
   }
 }
 
+export type EventMessageTextStart = {
+  type: string
+  properties: {
+    sessionId: string
+    messageId: string
+    partId: string
+    timestamp: string
+  }
+}
+
+export type EventMessageTextDelta = {
+  type: string
+  properties: {
+    sessionId: string
+    messageId: string
+    partId: string
+    content: string
+    fullText: string
+    timestamp: string
+  }
+}
+
+export type EventMessageTextEnd = {
+  type: string
+  properties: {
+    sessionId: string
+    messageId: string
+    partId: string
+    finalText: string
+    timestamp: string
+  }
+}
+
+export type EventMessageFinished = {
+  type: string
+  properties: {
+    sessionId: string
+    messageId: string
+    timestamp: string
+  }
+}
+
 export type EventFileWatcherUpdated = {
   type: string
   properties: {
@@ -525,6 +656,13 @@ export type EventIdeInstalled = {
   properties: {
     ide: string
   }
+}
+
+export type SessionEvent = {
+  type: string
+  sessionId: string
+  data?: unknown
+  timestamp: string
 }
 
 export type App = {
@@ -1053,6 +1191,27 @@ export type EventSubscribeResponses = {
 }
 
 export type EventSubscribeResponse = EventSubscribeResponses[keyof EventSubscribeResponses]
+
+export type EventSubscribeSessionData = {
+  body?: never
+  path: {
+    /**
+     * Session ID to subscribe to
+     */
+    sessionId: string
+  }
+  query?: never
+  url: "/event/session/{sessionId}"
+}
+
+export type EventSubscribeSessionResponses = {
+  /**
+   * Session-specific event stream
+   */
+  200: SessionEvent
+}
+
+export type EventSubscribeSessionResponse = EventSubscribeSessionResponses[keyof EventSubscribeSessionResponses]
 
 export type AppGetData = {
   body?: never
@@ -1614,6 +1773,250 @@ export type AppAgentsResponses = {
 }
 
 export type AppAgentsResponse = AppAgentsResponses[keyof AppAgentsResponses]
+
+export type SessionGetCurrentAgentData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    id: string
+  }
+  query?: never
+  url: "/session/{id}/agent"
+}
+
+export type SessionGetCurrentAgentErrors = {
+  /**
+   * Bad request
+   */
+  404: _Error
+}
+
+export type SessionGetCurrentAgentError = SessionGetCurrentAgentErrors[keyof SessionGetCurrentAgentErrors]
+
+export type SessionGetCurrentAgentResponses = {
+  /**
+   * Current agent information
+   */
+  200: {
+    currentAgent: string
+    availableAgents: Array<string>
+    sessionTokens?: number
+  }
+}
+
+export type SessionGetCurrentAgentResponse = SessionGetCurrentAgentResponses[keyof SessionGetCurrentAgentResponses]
+
+export type SessionGetTokensData = {
+  body?: never
+  path: {
+    /**
+     * Session ID
+     */
+    id: string
+  }
+  query?: never
+  url: "/session/{id}/tokens"
+}
+
+export type SessionGetTokensErrors = {
+  /**
+   * Bad request
+   */
+  404: _Error
+}
+
+export type SessionGetTokensError = SessionGetTokensErrors[keyof SessionGetTokensErrors]
+
+export type SessionGetTokensResponses = {
+  /**
+   * Session token count
+   */
+  200: {
+    sessionId: string
+    totalTokens: number
+    messageCount: number
+  }
+}
+
+export type SessionGetTokensResponse = SessionGetTokensResponses[keyof SessionGetTokensResponses]
+
+export type SessionGetUsageData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/session/{id}/usage"
+}
+
+export type SessionGetUsageErrors = {
+  /**
+   * Bad request
+   */
+  404: _Error
+}
+
+export type SessionGetUsageError = SessionGetUsageErrors[keyof SessionGetUsageErrors]
+
+export type SessionGetUsageResponses = {
+  /**
+   * Session usage data
+   */
+  200: {
+    sessionId: string
+    totalCostUsd: number
+    totalInputTokens: number
+    totalOutputTokens: number
+    totalCachedTokens: number
+    totalRequests: number
+    stages: {
+      [key: string]: {
+        cost: number
+        inputTokens: number
+        outputTokens: number
+        requests: number
+        models: {
+          [key: string]: unknown
+        }
+      }
+    }
+    models: {
+      [key: string]: {
+        cost: number
+        tokens: number
+        requests: number
+      }
+    }
+    messageCount: number
+    lastUpdated: string
+  }
+}
+
+export type SessionGetUsageResponse = SessionGetUsageResponses[keyof SessionGetUsageResponses]
+
+export type SessionNotifyUsageData = {
+  body: unknown
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/session/{id}/notify-usage"
+}
+
+export type SessionNotifyUsageErrors = {
+  /**
+   * Bad request
+   */
+  400: _Error
+}
+
+export type SessionNotifyUsageError = SessionNotifyUsageErrors[keyof SessionNotifyUsageErrors]
+
+export type SessionNotifyUsageResponses = {
+  /**
+   * Usage notification sent successfully
+   */
+  200: {
+    success: boolean
+    message: string
+  }
+}
+
+export type SessionNotifyUsageResponse = SessionNotifyUsageResponses[keyof SessionNotifyUsageResponses]
+
+export type SessionSwitchAgentData = {
+  body?: {
+    /**
+     * Target agent name (e.g., 'probe', 'exec')
+     */
+    agent: string
+    /**
+     * Optional message to send with the switch
+     */
+    message?: string
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    id: string
+  }
+  query?: never
+  url: "/session/{id}/switch-agent"
+}
+
+export type SessionSwitchAgentErrors = {
+  /**
+   * Bad request
+   */
+  404: _Error
+}
+
+export type SessionSwitchAgentError = SessionSwitchAgentErrors[keyof SessionSwitchAgentErrors]
+
+export type SessionSwitchAgentResponses = {
+  /**
+   * Agent switched successfully
+   */
+  200: {
+    success: boolean
+    currentAgent: string
+    previousAgent?: string
+    message?: string
+  }
+}
+
+export type SessionSwitchAgentResponse = SessionSwitchAgentResponses[keyof SessionSwitchAgentResponses]
+
+export type SessionMessageWithAgentData = {
+  body?: {
+    /**
+     * Message content
+     */
+    message: string
+    /**
+     * Force specific agent
+     */
+    agent?: string
+    /**
+     * Enable automatic agent switching based on signals
+     */
+    autoSwitch?: boolean
+  }
+  path: {
+    /**
+     * Session ID
+     */
+    id: string
+  }
+  query?: never
+  url: "/session/{id}/message-with-agent"
+}
+
+export type SessionMessageWithAgentErrors = {
+  /**
+   * Bad request
+   */
+  404: _Error
+}
+
+export type SessionMessageWithAgentError = SessionMessageWithAgentErrors[keyof SessionMessageWithAgentErrors]
+
+export type SessionMessageWithAgentResponses = {
+  /**
+   * Message sent with agent handling
+   */
+  200: {
+    message?: unknown
+    agentSwitched: boolean
+    currentAgent: string
+    switchSignalDetected?: boolean
+  }
+}
+
+export type SessionMessageWithAgentResponse = SessionMessageWithAgentResponses[keyof SessionMessageWithAgentResponses]
 
 export type TuiAppendPromptData = {
   body?: {
